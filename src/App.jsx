@@ -313,33 +313,23 @@ function toGrams(qty,unit){if(!qty||isNaN(qty))return 0;const u=unit||'';if(u===
 const FLOUR_W=['flour','farina','harina','mehl','farine','semolina','semola','manitoba','grano','t45','t55','t65','t80','t150','00','tipo']
 function isFlour(n){const s=(n||'').toLowerCase();return FLOUR_W.some(k=>s.includes(k))}
 function fmtQty(q){if(q>=100)return String(Math.round(q));if(q>=10)return(Math.round(q*10)/10).toFixed(1);return(Math.round(q*100)/100).toFixed(q<1?2:1)}
-function parseSections(ingredients){const ings=ingredients||[];const sections=[];let cur={name:null,items:[],rawIndices:[]};ings.forEach((ing,i)=>{if(/^##?\s+/.test(ing)){if(cur.items.length||cur.name!==null)sections.push(cur);cur={name:ing.replace(/^##?\s*/,'').trim(),items:[],rawIndices:[]}}else{cur.items.push(ing);cur.rawIndices.push(i)}});if(cur.items.length||cur.name!==null)sections.push(cur);if(!sections.length)return[{name:null,items:ings,rawIndices:ings.map((_,i)=>i)}];return sections}
-function calcPct(items,mode,base){const parsed=items.map(i=>{const p=parseIng(i);return{...p,grams:toGrams(p.qty,p.unit)}});let bg=0;if(mode==='baker')bg=parsed.filter(p=>isFlour(p.name)).reduce((s,p)=>s+p.grams,0);else if(mode==='mass')bg=parsed.reduce((s,p)=>s+p.grams,0);else if(mode==='custom'&&base){const b=parsed.find(p=>p.name.toLowerCase().includes(base.toLowerCase()));bg=b?b.grams:0};return parsed.map(p=>({...p,pct:bg>0&&p.grams>0?p.grams/bg*100:null,isBase:mode==='custom'&&base&&p.name.toLowerCase().includes(base.toLowerCase())}))}
-function getTotalGrams(ingredients){return(ingredients||[]).reduce((s,ing)=>{if(/^##?\s+/.test(ing))return s;const p=parseIng(ing);return s+toGrams(p.qty,p.unit)},0)}
-function scaleRecipe(recipe,factor){return{...recipe,ingredients:(recipe.ingredients||[]).map(ing=>{if(/^##?\s+/.test(ing))return ing;const p=parseIng(ing);if(p.qty===null)return ing;return `${fmtQty(p.qty*factor)}${p.unit?' '+p.unit:''}  ${p.name}`})}}
-function findStepsForIng(name,steps){const words=name.toLowerCase().split(/\s+/).filter(w=>w.length>3);if(!words.length)return new Set();const r=new Set();(steps||[]).forEach((s,i)=>{if(words.some(w=>s.toLowerCase().includes(w)))r.add(i)});return r}
-
-/* ── Macro Analysis ──────────────────────────────────────────────────────────── */
-
-// Approximate nutritional factors per 100g of ingredient type
-
-const NUTRIENT_DB = {
-  flour:    {fat:1.2,water:14,sugar:1.5,protein:12,carbs:72,cal:340},
-  butter:   {fat:80,water:16,sugar:0,protein:1,carbs:0,cal:720},
-  egg:      {fat:10,water:74,sugar:0.4,protein:13,carbs:1,cal:155},
-  sugar:    {fat:0,water:0,sugar:100,protein:0,carbs:100,cal:387},
-  milk:     {fat:3.5,water:88,sugar:5,protein:3.4,carbs:5,cal:61},
-  cream:    {fat:35,water:58,sugar:3,protein:2.5,carbs:3,cal:340},
-  salt:     {fat:0,water:0,sugar:0,protein:0,carbs:0,cal:0},
-  yeast:    {fat:1.5,water:70,sugar:0,protein:40,carbs:18,cal:105},
-  honey:    {fat:0,water:17,sugar:82,protein:0.3,carbs:82,cal:304},
-  chocolate:{fat:32,water:1,sugar:48,protein:8,carbs:55,cal:546},
-  oil:      {fat:100,water:0,sugar:0,protein:0,carbs:0,cal:884},
-  water:    {fat:0,water:100,sugar:0,protein:0,carbs:0,cal:0},
-  egg_yolk: {fat:27,water:49,sugar:0.5,protein:16,carbs:1,cal:322},
-  molasses: {fat:0,water:22,sugar:75,protein:0,carbs:75,cal:290},
-  sourdough:{fat:1,water:44,sugar:0.5,protein:7,carbs:45,cal:220},
-  default:  {fat:3,water:12,sugar:5,protein:10,carbs:60,cal:320},
+const NUTRIENT_DB={
+  flour:    {fat:1.2,water:14,sugar:1.5,protein:12,carbs:72,cal:340,flourEq:100,freeWater:0},
+  butter:   {fat:80,water:16,sugar:0,protein:1,carbs:0,cal:720,flourEq:0,freeWater:0},
+  egg:      {fat:10,water:74,sugar:0.4,protein:13,carbs:1,cal:155,flourEq:0,freeWater:60},
+  egg_yolk: {fat:27,water:49,sugar:0.5,protein:16,carbs:1,cal:322,flourEq:0,freeWater:20},
+  sugar:    {fat:0,water:0,sugar:100,protein:0,carbs:100,cal:387,flourEq:0,freeWater:0},
+  milk:     {fat:3.5,water:88,sugar:5,protein:3.4,carbs:5,cal:61,flourEq:0,freeWater:88},
+  cream:    {fat:35,water:58,sugar:3,protein:2.5,carbs:3,cal:340,flourEq:0,freeWater:40},
+  salt:     {fat:0,water:0,sugar:0,protein:0,carbs:0,cal:0,flourEq:0,freeWater:0},
+  yeast:    {fat:1.5,water:70,sugar:0,protein:40,carbs:18,cal:105,flourEq:0,freeWater:70},
+  honey:    {fat:0,water:17,sugar:82,protein:0.3,carbs:82,cal:304,flourEq:0,freeWater:0},
+  molasses: {fat:0,water:22,sugar:75,protein:0,carbs:75,cal:290,flourEq:0,freeWater:0},
+  chocolate:{fat:32,water:1,sugar:48,protein:8,carbs:55,cal:546,flourEq:0,freeWater:0},
+  oil:      {fat:100,water:0,sugar:0,protein:0,carbs:0,cal:884,flourEq:0,freeWater:0},
+  water:    {fat:0,water:100,sugar:0,protein:0,carbs:0,cal:0,flourEq:0,freeWater:100},
+  sourdough:{fat:1,water:44,sugar:0.5,protein:7,carbs:45,cal:220,flourEq:50,freeWater:44},
+  default:  {fat:3,water:12,sugar:5,protein:10,carbs:60,cal:320,flourEq:0,freeWater:0},
 }
 function detectIngType(name){
   const s=(name||'').toLowerCase()
@@ -360,91 +350,28 @@ function detectIngType(name){
   if(['water','eau','agua','acqua','wasser'].some(k=>s.includes(k)))return 'water'
   return 'default'
 }
-function calcMacros(ingredients){
+function calcMacros(ingredients,aiCache){
   const items=(ingredients||[]).filter(i=>!/^##?\s+/.test(i))
-  let fat=0,water=0,sugar=0,protein=0,carbs=0,cal=0,total=0
+  let fat=0,water=0,sugar=0,protein=0,carbs=0,cal=0,total=0,flourEqG=0,freeWaterG=0,saltG=0
   items.forEach(ing=>{
     const p=parseIng(ing);const g=toGrams(p.qty,p.unit)
     if(!g)return
-    const t=detectIngType(p.name);const n=NUTRIENT_DB[t]||NUTRIENT_DB.default
+    const cached=aiCache&&aiCache[p.name]
+    let n
+    if(cached){n={fat:cached.fat_pct||0,water:cached.water_pct||0,sugar:cached.sugar_pct||0,protein:cached.protein_pct||0,carbs:cached.carbs_pct||0,cal:cached.cal_per100||0,flourEq:cached.flour_equivalent_pct||0,freeWater:cached.free_water_pct||0}}
+    else{const tp=detectIngType(p.name);n=NUTRIENT_DB[tp]||NUTRIENT_DB.default}
     fat+=g*(n.fat/100);water+=g*(n.water/100);sugar+=g*(n.sugar/100)
     protein+=g*(n.protein/100);carbs+=g*(n.carbs/100);cal+=g*(n.cal/100)
+    flourEqG+=g*(n.flourEq/100);freeWaterG+=g*(n.freeWater/100)
+    if(detectIngType(p.name)==='salt')saltG+=g
     total+=g
   })
   const hydration=total>0?water/total*100:0
-  const flourG=items.reduce((s,ing)=>{const p=parseIng(ing);if(isFlour(p.name))return s+toGrams(p.qty,p.unit);return s},0)
-  const waterG=items.reduce((s,ing)=>{const p=parseIng(ing);if(detectIngType(p.name)==='water')return s+toGrams(p.qty,p.unit);return s},0)
-  const bakersHydration=flourG>0?waterG/flourG*100:0
-  const saltG=items.reduce((s,ing)=>{const p=parseIng(ing);if(detectIngType(p.name)==='salt')return s+toGrams(p.qty,p.unit);return s},0)
-  const fatP=total>0?fat/total*100:0;const sugarP=total>0?sugar/total*100:0
-  const saltP=flourG>0?saltG/flourG*100:0
-  return{fat:Math.round(fat*10)/10,water:Math.round(water*10)/10,sugar:Math.round(sugar*10)/10,protein:Math.round(protein*10)/10,carbs:Math.round(carbs*10)/10,cal:Math.round(cal),total:Math.round(total),hydration:Math.round(hydration*10)/10,bakersHydration:Math.round(bakersHydration*10)/10,fatP:Math.round(fatP*10)/10,sugarP:Math.round(sugarP*10)/10,saltP:Math.round(saltP*10)/10,saltG:Math.round(saltG*10)/10}
-}
-
-/* ── Notes tabs ──────────────────────────────────────────────────────────── */
-
-function parseTabs(notesPad){
-  if(!notesPad)return[{id:uid(),name:'General',content:''}]
-  try{const p=JSON.parse(notesPad);if(Array.isArray(p)&&p.length>0)return p}catch(_){}
-  return[{id:uid(),name:'General',content:notesPad}]
-}
-
-const serializeTabs = tabs => JSON.stringify(tabs)
-
-/* ── I+D data helpers ───────────────────────────────────────────────────────────── */
-
-function parseIdData(raw){
-  if(!raw)return{sensory:{},versions:[],goal:'',nutritionOverride:null}
-  try{return JSON.parse(raw)}catch{return{sensory:{},versions:[],goal:'',nutritionOverride:null}}
-}
-
-const serializeIdData = d => JSON.stringify(d)
-
-/* ── Strip binary before API ────────────────────────────────────────────────────────── */
-
-function stripForApi(recipe){
-  if(!recipe)return recipe
-  // eslint-disable-next-line no-unused-vars
-  const{thumbnail,source_photos,media_library,...rest}=recipe
-  return rest
-}
-
-/* ── Voice Input with baking correction ──────────────────────────────────── */
-
-const BAKING_CORRECTIONS = {
-  'krave':'krapfen','crave':'krapfen','grave':'krapfen',
-  'macaroon':'macaron','macarons':'macaron',
-  'brigadeiro':'brigadeiro','briggadeiro':'brigadeiro',
-  'panettoni':'panettone','panetoni':'panettone',
-  'focaccia':'focaccia','fokacia':'focaccia',
-  'brioche':'brioche','brioce':'brioche','briosh':'brioche',
-  'croissant':'croissant','cruasson':'croissant','cruasán':'croissant',
-  'baguette':'baguette','baguet':'baguette',
-  'choux':'choux','chu':'choux',
-  'feuilletage':'feuilletage','feiyetage':'feuilletage',
-  'laminage':'laminage',
-  'autolyse':'autolyse','autolisis':'autolyse',
-  'levain':'levain','levén':'levain',
-  'poolish':'poolish','pulich':'poolish',
-  'biga':'biga','viga':'biga',
-  'sourdough':'sourdough','sour dough':'sourdough',
-  'lievito naturale':'lievito naturale','levito natural':'lievito naturale',
-  'maillard':'maillard','mayar':'maillard',
-  'tangzhong':'tangzhong','tanjon':'tangzhong',
-  'viennoiserie':'viennoiserie','vienoiserie':'viennoiserie',
-  'pâte feuilletée':'pâte feuilletée',
-  'crème pâtissière':'crème pâtissière','creme patissiere':'crème pâtissière',
-  'ganache':'ganache','ganatche':'ganache',
-  'praline':'praliné','pralinee':'praliné',
-  'couverture':'couverture','covercure':'couverture',
-}
-function correctBakingTerms(text){
-  let r=text
-  Object.entries(BAKING_CORRECTIONS).forEach(([wrong,right])=>{
-    const rx=new RegExp('\\b'+wrong+'\\b','gi')
-    r=r.replace(rx,right)
-  })
-  return r
+  const bakersHydration=flourEqG>0?freeWaterG/flourEqG*100:0
+  const fatP=total>0?fat/total*100:0
+  const sugarP=total>0?sugar/total*100:0
+  const saltP=flourEqG>0?saltG/flourEqG*100:0
+  return{fat:Math.round(fat*10)/10,water:Math.round(water*10)/10,sugar:Math.round(sugar*10)/10,protein:Math.round(protein*10)/10,carbs:Math.round(carbs*10)/10,cal:Math.round(cal),total:Math.round(total),hydration:Math.round(hydration*10)/10,bakersHydration:Math.round(bakersHydration*10)/10,fatP:Math.round(fatP*10)/10,sugarP:Math.round(sugarP*10)/10,saltP:Math.round(saltP*10)/10,saltG:Math.round(saltG*10)/10,flourEqG:Math.round(flourEqG),freeWaterG:Math.round(freeWaterG)}
 }
 function useVoiceInput(onTranscript,smartCorrect=true){
   const[recording,setRecording]=useState(false)
@@ -852,7 +779,38 @@ function IDPanel({recipe,onSave}){
     setData(next);saveData(next)
   }
   function setGoal(g){const next={...data,goal:g};setData(next);saveData(next)}
-  const macros=useMemo(()=>calcMacros(recipe.ingredients),[recipe.ingredients])
+  const aiCache=data.macroCache||null
+  const macros=useMemo(()=>calcMacros(recipe.ingredients,aiCache),[recipe.ingredients,aiCache])
+  const [analyzingMacros,setAnalyzingMacros]=useState(false)
+  const [addingParam,setAddingParam]=useState(false)
+  const [newParamLabel,setNewParamLabel]=useState('')
+  const [analyzingCustom,setAnalyzingCustom]=useState(null)
+  async function runAIMacroAnalysis(){
+    setAnalyzingMacros(true)
+    try{
+      const items=(recipe.ingredients||[]).filter(i=>!/^##?\s+/.test(i)).map(i=>{const p=parseIng(i);return{name:p.name,qty:p.qty,unit:p.unit||'g'}})
+      const res=await invoke({type:'analyze_macros',ingredients:items,recipe_title:recipe.title||''})
+      const nd={...data,macroCache:res.cache};await saveData(nd);setData(nd)
+    }catch(e){alert('AI analysis error: '+e.message)}
+    finally{setAnalyzingMacros(false)}
+  }
+  async function addCustomParam(){
+    if(!newParamLabel.trim())return
+    setAnalyzingCustom(newParamLabel)
+    try{
+      const items=(recipe.ingredients||[]).filter(i=>!/^##?\s+/.test(i)).map(i=>{const p=parseIng(i);return{name:p.name,qty:p.qty,unit:p.unit||'g'}})
+      const res=await invoke({type:'analyze_custom_param',param_label:newParamLabel,ingredients:items,recipe_title:recipe.title||'',existing_macros:macros})
+      const np={id:Date.now(),label:newParamLabel,value:res.value,unit:res.unit||'',explanation:res.explanation||''}
+      const updated=[...(data.customParams||[]),np]
+      const nd={...data,customParams:updated};await saveData(nd);setData(nd)
+      setNewParamLabel('');setAddingParam(false)
+    }catch(e){alert('Custom param error: '+e.message)}
+    finally{setAnalyzingCustom(null)}
+  }
+  async function removeCustomParam(id){
+    const updated=(data.customParams||[]).filter(p=>p.id!==id)
+    const nd={...data,customParams:updated};await saveData(nd);setData(nd)
+  }
   const MAX_VALS={fat:40,water:80,sugar:40,protein:20,bakersHydration:100,saltP:3}
   return(
     <div className="ID-panel">
@@ -862,7 +820,7 @@ function IDPanel({recipe,onSave}){
         <div className="ID-section-header" onClick={()=>toggleSection('params')}>
           <h3>📊 Macro Parameters</h3>
           <span style={{fontSize:11,color:'var(--id)'}}>{openSections.params?'▲':'▼'}</span>
-          <span style={{fontFamily:'var(--mono)',fontSize:9,color:'var(--muted)',marginLeft:8}}>auto-calculated</span>
+          <span style={{fontFamily:'var(--mono)',fontSize:9,color:'var(--muted)',marginLeft:8}}>{aiCache?'🤖 AI-analyzed':'auto-calculated'}</span>
         </div>
         {openSections.params&&<div className="ID-section-body">
           <div className="ID-param-grid">
@@ -872,24 +830,49 @@ function IDPanel({recipe,onSave}){
               {k:'bakersHydration',label:"Baker's hydration",v:macros.bakersHydration,unit:'%',max:MAX_VALS.bakersHydration,color:'#1A6B6B'},
               {k:'sugar',label:'Total sugar',v:macros.sugarP,unit:'%',max:MAX_VALS.sugar,color:'#9C27B0'},
               {k:'saltP',label:"Salt (baker's %)",v:macros.saltP,unit:'%',max:MAX_VALS.saltP,color:'#607D8B'},
-              {k:'protein',label:'Protein (est.)',v:macros.protein,unit:'g',max:null,color:'#2D6A4F'},
-            ].map(p=>(
-              <div className="ID-param-card" key={p.k}>
-                <div className="ID-param-label">{p.label}</div>
-                <div className="ID-param-value">{p.v}<span className="ID-param-unit">{p.unit}</span></div>
-                {p.max&&<div className="ID-param-bar"><div className="ID-param-bar-fill" style={{width:Math.min(100,p.v/p.max*100)+'%',background:p.color}}/></div>}
+              {k:'protein',label:'Protein (est.)',v:macros.protein,unit:'g',max:null,color:'#4CAF50'},
+            ].map(({k,label,v,unit,max,color})=>(
+              <div className="ID-param-card" key={k}>
+                <div className="ID-param-label">{label}</div>
+                <div><span className="ID-param-value">{v}</span><span className="ID-param-unit">{unit}</span></div>
+                {max&&<div className="ID-param-bar"><div className="ID-param-bar-fill" style={{width:Math.min(100,(v/max)*100)+'%',background:color}}/></div>}
+              </div>
+            ))}
+            {(data.customParams||[]).map(cp=>(
+              <div className="ID-param-card" key={cp.id} style={{border:'1px solid var(--amber)',background:'#FFFBF0'}}>
+                <div className="ID-param-label" style={{display:'flex',justifyContent:'space-between'}}>
+                  <span>{cp.label}</span>
+                  <span style={{cursor:'pointer',color:'var(--muted)',fontSize:10}} onClick={()=>removeCustomParam(cp.id)}>✕</span>
+                </div>
+                <div><span className="ID-param-value">{cp.value}</span><span className="ID-param-unit"> {cp.unit}</span></div>
+                {cp.explanation&&<div style={{fontSize:9,color:'var(--muted)',marginTop:3,lineHeight:1.3}}>{cp.explanation}</div>}
               </div>
             ))}
           </div>
-          <div style={{fontSize:11,color:'var(--muted)',marginTop:6,lineHeight:1.5}}>
+          <div style={{fontSize:11,color:'var(--muted)',marginBottom:6}}>
             Total batch: <strong>{macros.total}g</strong> · Fat: <strong>{macros.fat}g</strong> · Water: <strong>{macros.water}g</strong> · Sugar: <strong>{macros.sugar}g</strong> · Salt: <strong>{macros.saltG}g</strong>
+            {aiCache&&<span> · Flour equiv.: <strong>{macros.flourEqG}g</strong> · Free water: <strong>{macros.freeWaterG}g</strong></span>}
           </div>
-          <div style={{fontSize:10,color:'var(--muted)',marginTop:4}}>
-            * Estimated from ingredient types. Edit the recipe for accurate values.
+          <div style={{fontSize:10,color:'var(--muted)',marginBottom:8}}>
+            {aiCache?"* AI-analyzed per ingredient. Baker's hydration = free water / total flour equiv. (incl. starters).":"* Estimated from ingredient types. Use AI analyze for precise values per ingredient."}
           </div>
+          <div style={{display:'flex',gap:8,flexWrap:'wrap',marginTop:4}}>
+            <button onClick={runAIMacroAnalysis} disabled={analyzingMacros} style={{fontFamily:'var(--mono)',fontSize:10,padding:'4px 10px',borderRadius:5,border:'1px solid var(--id)',background:'var(--paper)',color:'var(--id)',cursor:'pointer'}}>
+              {analyzingMacros?'🔄 Analyzing…':'🤖 AI analyze'}
+            </button>
+            <button onClick={()=>setAddingParam(v=>!v)} style={{fontFamily:'var(--mono)',fontSize:10,padding:'4px 10px',borderRadius:5,border:'1px solid var(--amber)',background:'var(--paper)',color:'var(--amber)',cursor:'pointer'}}>
+              ✚ Add parameter
+            </button>
+          </div>
+          {addingParam&&<div style={{marginTop:8,display:'flex',gap:6,alignItems:'center',flexWrap:'wrap'}}>
+            <input value={newParamLabel} onChange={e=>setNewParamLabel(e.target.value)} placeholder="e.g. Osmotic pressure, Fat/flour ratio…" onKeyDown={e=>e.key==='Enter'&&addCustomParam()} style={{flex:1,minWidth:180,border:'1px solid var(--rule)',borderRadius:5,padding:'4px 8px',fontSize:12,fontFamily:'var(--sans)'}}/>
+            <button onClick={addCustomParam} disabled={!!analyzingCustom||!newParamLabel.trim()} style={{fontFamily:'var(--mono)',fontSize:10,padding:'4px 10px',borderRadius:5,border:'1px solid var(--id)',background:'var(--id)',color:'#fff',cursor:'pointer'}}>
+              {analyzingCustom?'🔄 Calculating…':'Calculate'}
+            </button>
+          </div>}
         </div>}
       </div>
-      {/* ─ Sensory ─ */}
+/* ─ Sensory ─ */}
       <div className="ID-section">
         <div className="ID-section-header" onClick={()=>toggleSection('sensory')}>
           <h3>👅 Sensory Evaluation</h3>

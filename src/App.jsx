@@ -346,7 +346,7 @@ function detectIngType(name){
   if(['sugar','sucre','azucar','zucchero','zucker','saccharose'].some(k=>s.includes(k)))return 'sugar'
   if(['honey','miel','miele','honig'].some(k=>s.includes(k)))return 'honey'
   if(['milk','lait','leche','latte','milch'].some(k=>s.includes(k)))return 'milk'
-  if(['cream','cr\u00e8me','crema','sahne'].some(k=>s.includes(k)))return 'cream'
+  if(['cream','crème','crema','sahne'].some(k=>s.includes(k)))return 'cream'
   if(['salt','sel','sal','sale'].some(k=>s.includes(k)))return 'salt'
   if(['yeast','levure','levadura','lievito','hefe'].some(k=>s.includes(k)))return 'yeast'
   if(['chocolate','cocoa','cacao'].some(k=>s.includes(k)))return 'chocolate'
@@ -412,13 +412,13 @@ const BAKING_CORRECTIONS = {
   'panettoni':'panettone','panetoni':'panettone',
   'focaccia':'focaccia','fokacia':'focaccia',
   'brioche':'brioche','brioce':'brioche','briosh':'brioche',
-  'croissant':'croissant','cruasson':'croissant','cruas\u00e1n':'croissant',
+  'croissant':'croissant','cruasson':'croissant','cruasán':'croissant',
   'baguette':'baguette','baguet':'baguette',
   'choux':'choux','chu':'choux',
   'feuilletage':'feuilletage','feiyetage':'feuilletage',
   'laminage':'laminage',
   'autolyse':'autolyse','autolisis':'autolyse',
-  'levain':'levain','lev\u00e9n':'levain',
+  'levain':'levain','levén':'levain',
   'poolish':'poolish','pulich':'poolish',
   'biga':'biga','viga':'biga',
   'sourdough':'sourdough','sour dough':'sourdough',
@@ -426,10 +426,10 @@ const BAKING_CORRECTIONS = {
   'maillard':'maillard','mayar':'maillard',
   'tangzhong':'tangzhong','tanjon':'tangzhong',
   'viennoiserie':'viennoiserie','vienoiserie':'viennoiserie',
-  'p\u00e2te feuillet\u00e9e':'p\u00e2te feuillet\u00e9e',
-  'cr\u00e8me p\u00e2tissi\u00e8re':'cr\u00e8me p\u00e2tissi\u00e8re','creme patissiere':'cr\u00e8me p\u00e2tissi\u00e8re',
+  'pâte feuilletée':'pâte feuilletée',
+  'crème pâtissière':'crème pâtissière','creme patissiere':'crème pâtissière',
   'ganache':'ganache','ganatche':'ganache',
-  'praline':'pralin\u00e9','pralinee':'pralin\u00e9',
+  'praline':'praliné','pralinee':'praliné',
   'couverture':'couverture','covercure':'couverture',
 }
 function correctBakingTerms(text){
@@ -534,9 +534,9 @@ function exportPDF(recipe,pctOpts=null,exportNotes=false,originalThumbnail=null)
   const tl=doc.splitTextToSize(recipe.title||'Recipe',titleW);doc.text(tl,M,y);y+=tl.length*9
   doc.setDrawColor(188,108,44);doc.setLineWidth(1.5);doc.line(M,y,M+28,y);y+=7
   const meta=[recipe.category&&`Category: ${recipe.category}`,recipe.time&&`Time: ${recipe.time}`,recipe.servings&&`Yield: ${recipe.servings}`].filter(Boolean)
-  if(meta.length){doc.setFont('helvetica','normal');doc.setFontSize(9);doc.setTextColor(110,100,92);doc.text(meta.join('   \u00b7   '),M,y);y+=9}
+  if(meta.length){doc.setFont('helvetica','normal');doc.setFontSize(9);doc.setTextColor(110,100,92);doc.text(meta.join('   ·   '),M,y);y+=9}
   if(thumb)y=Math.max(y,42)
-  if(pctOpts?.appliedScaleLabel){doc.setFillColor(234,242,238);doc.rect(M,y,CW,6,'F');doc.setFont('helvetica','normal');doc.setFontSize(8.5);doc.setTextColor(45,106,79);doc.text(`\u2696 Scaled — ${pctOpts.appliedScaleLabel}`,M+2,y+4.5);y+=8}
+  if(pctOpts?.appliedScaleLabel){doc.setFillColor(234,242,238);doc.rect(M,y,CW,6,'F');doc.setFont('helvetica','normal');doc.setFontSize(8.5);doc.setTextColor(45,106,79);doc.text(`⚖ Scaled — ${pctOpts.appliedScaleLabel}`,M+2,y+4.5);y+=8}
   const sections=parseSections(recipe.ingredients||[])
   y+=3;doc.setFont('helvetica','bold');doc.setFontSize(8);doc.setTextColor(31,58,77);doc.text('INGREDIENTS',M,y);y+=6
   sections.forEach(sec=>{
@@ -546,7 +546,7 @@ function exportPDF(recipe,pctOpts=null,exportNotes=false,originalThumbnail=null)
       ck(7);const mm=ing.match(/^([\d.,]+\s*[^\s]+)\s{2,}(.+)$/)||ing.match(/^([\d.,]+\s*[a-zA-Z%]+)\s+(.+)$/)
       doc.setFont('helvetica','normal');doc.setFontSize(10);doc.setTextColor(34,28,24)
       if(mm){doc.setFont('courier','normal');doc.text(mm[1].trim(),M,y);doc.setFont('helvetica','normal');const ls=doc.splitTextToSize(mm[2].trim(),CW-38);doc.text(ls,M+36,y);if(pctData&&pctData[idx].pct!==null){doc.setFont('courier','normal');doc.setFontSize(9);doc.setTextColor(pctData[idx].isBase?188:110,pctData[idx].isBase?108:100,pctData[idx].isBase?44:92);doc.text(pctData[idx].pct.toFixed(1)+'%',PW-M,y,{align:'right'});doc.setTextColor(34,28,24);doc.setFontSize(10)};y+=ls.length*5+1}
-      else{const ls=doc.splitTextToSize(`\u00b7 ${ing}`,CW);doc.text(ls,M,y);y+=ls.length*5+1}
+      else{const ls=doc.splitTextToSize(`· ${ing}`,CW);doc.text(ls,M,y);y+=ls.length*5+1}
     })
     const sg=sec.items.reduce((s,i)=>{const p=parseIng(i);return s+toGrams(p.qty,p.unit)},0)
     if(sec.name&&sg>0){doc.setFont('courier','normal');doc.setFontSize(8.5);doc.setTextColor(110,100,92);doc.text(`Subtotal: ${sg.toFixed(0)} g`,PW-M,y,{align:'right'});y+=6}
@@ -560,7 +560,7 @@ function exportPDF(recipe,pctOpts=null,exportNotes=false,originalThumbnail=null)
     if(tabs.length){ck(16);y+=5;doc.setFont('helvetica','bold');doc.setFontSize(8);doc.setTextColor(31,58,77);doc.text('NOTES',M,y);y+=6;tabs.forEach(tab=>{if(tab.name!=='General'){ck(8);doc.setFont('helvetica','bolditalic');doc.setFontSize(9);doc.setTextColor(91,58,140);doc.text(tab.name,M,y);y+=5};const lines=tab.content.split('\n');lines.forEach(line=>{ck(6);const ls=doc.splitTextToSize(line||' ',CW);doc.setFont('helvetica','normal');doc.setFontSize(9.5);doc.setTextColor(110,100,92);doc.text(ls,M,y);y+=ls.length*5});y+=3})}
   }
   const total=doc.internal.getNumberOfPages()
-  for(let p=1;p<=total;p++){doc.setPage(p);doc.setFont('helvetica','normal');doc.setFontSize(7);doc.setTextColor(180,170,160);doc.text('Quaderno AI+D',M,292);doc.text(`${new Date().toLocaleDateString()}  \u00b7  ${p}/${total}`,PW-M,292,{align:'right'});doc.setFillColor(31,58,77);doc.rect(0,294,PW,2,'F')}
+  for(let p=1;p<=total;p++){doc.setPage(p);doc.setFont('helvetica','normal');doc.setFontSize(7);doc.setTextColor(180,170,160);doc.text('Quaderno AI+D',M,292);doc.text(`${new Date().toLocaleDateString()}  ·  ${p}/${total}`,PW-M,292,{align:'right'});doc.setFillColor(31,58,77);doc.rect(0,294,PW,2,'F')}
   doc.save((recipe.title||'recipe').replace(/[^a-z0-9]+/gi,'-').toLowerCase()+'.pdf')
 }
 
@@ -583,9 +583,9 @@ async function exportImage(recipe,pctOpts=null,exportNotes=false,originalThumbna
   y+=dt(recipe.title||'Recipe',M,y,titleMaxW,56)
   ctx.strokeStyle='#BC6C2C';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(M,y+5);ctx.lineTo(M+110,y+5);ctx.stroke();y+=22
   if(thumbImg)y=Math.max(y,140)
-  const mp=[recipe.category,recipe.time&&`\u23f1 ${recipe.time}`,recipe.servings&&`\u2696 ${recipe.servings}`].filter(Boolean)
-  if(mp.length){ctx.font='17px -apple-system,sans-serif';ctx.fillStyle='#6E645C';ctx.fillText(mp.join('   \u00b7   '),M,y);y+=34}
-  if(pctOpts?.appliedScaleLabel){ctx.font='bold 14px ui-monospace,monospace';ctx.fillStyle='#2D6A4F';ctx.fillText('\u2696 '+pctOpts.appliedScaleLabel,M,y);y+=24}
+  const mp=[recipe.category,recipe.time&&`⏱ ${recipe.time}`,recipe.servings&&`⚖ ${recipe.servings}`].filter(Boolean)
+  if(mp.length){ctx.font='17px -apple-system,sans-serif';ctx.fillStyle='#6E645C';ctx.fillText(mp.join('   ·   '),M,y);y+=34}
+  if(pctOpts?.appliedScaleLabel){ctx.font='bold 14px ui-monospace,monospace';ctx.fillStyle='#2D6A4F';ctx.fillText('⚖ '+pctOpts.appliedScaleLabel,M,y);y+=24}
   y+=10;ctx.strokeStyle='#E6DECF';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(M,y);ctx.lineTo(W-M,y);ctx.stroke();y+=28
   const secLbl=(label,off)=>{ctx.font='bold 11px ui-monospace,monospace';ctx.fillStyle='#1F3A4D';ctx.fillText(label,M,y);ctx.strokeStyle='#1F3A4D';ctx.lineWidth=.5;ctx.beginPath();ctx.moveTo(M+off,y-3);ctx.lineTo(W-M,y-3);ctx.stroke();y+=24}
   const sections=parseSections(recipe.ingredients||[])
@@ -597,7 +597,7 @@ async function exportImage(recipe,pctOpts=null,exportNotes=false,originalThumbna
       const mm=ing.match(/^([\d.,]+\s*[^\s]+)\s{2,}(.+)$/)||ing.match(/^([\d.,]+\s*[a-zA-Z%]+)\s+(.+)$/)
       const pct=pctData?pctData[idx]:null;const nW=pct?.pct!=null?CW-320:CW-186
       if(mm){ctx.font='16px ui-monospace,monospace';ctx.fillStyle='#6E645C';ctx.fillText(mm[1].trim(),M,y);ctx.font='17px -apple-system,sans-serif';ctx.fillStyle='#221C18';const used=dt(mm[2].trim(),M+186,y,nW,27);if(pct?.pct!=null){ctx.font='bold 15px ui-monospace,monospace';ctx.fillStyle=pct.isBase?'#BC6C2C':'#6E645C';ctx.textAlign='right';ctx.fillText(pct.pct.toFixed(1)+'%',W-M,y);ctx.textAlign='left'};y+=Math.max(27,used)+3}
-      else{ctx.font='17px -apple-system,sans-serif';ctx.fillStyle='#221C18';y+=dt(`\u00b7 ${ing}`,M+10,y,CW-10,27)+3}
+      else{ctx.font='17px -apple-system,sans-serif';ctx.fillStyle='#221C18';y+=dt(`· ${ing}`,M+10,y,CW-10,27)+3}
     })
     const sg=sec.items.reduce((s,i)=>{const p=parseIng(i);return s+toGrams(p.qty,p.unit)},0)
     if(sec.name&&sg>0){ctx.font='12px ui-monospace,monospace';ctx.fillStyle='#BC6C2C';ctx.textAlign='right';ctx.fillText(`Subtotal: ${sg.toFixed(0)} g`,W-M,y);ctx.textAlign='left';y+=18}
@@ -659,7 +659,7 @@ function DraggableIngList({lines,onChange}){
             value={isSec(line)?line.replace(/^##?\s*/,''):line}
             onChange={e=>{const n=[...lines];n[idx]=isSec(line)?'## '+e.target.value:e.target.value;onChange(n)}}
             placeholder={isSec(line)?'Section name':'500 g  ingredient name'}/>
-          <button className="Q-drag-rm" onClick={()=>onChange(lines.filter((_,i)=>i!==idx))}>\u00d7</button>
+          <button className="Q-drag-rm" onClick={()=>onChange(lines.filter((_,i)=>i!==idx))}>×</button>
         </div>
       ))}
       <div className="Q-drag-footer">
@@ -714,13 +714,13 @@ function MediaLibraryPanel({recipeId,mediaRaw,onSave}){
       <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:10}}>
         <span style={{fontFamily:'var(--mono)',fontSize:9.5,textTransform:'uppercase',letterSpacing:'.18em',color:' var(--navy)'}}>Media Library — {items.length} file{items.length!==1?'s':''}</span>
         <label className="Q-media-upload-btn">
-          {uploading?'Uploading\u2026':'\uff0b Add media'}
+          {uploading?'Uploading…':'＋ Add media'}
           <input ref={fileRef} type="file" multiple accept="image/*,audio/*,video/*" style={{display:'none'}} disabled={uploading} onChange={e=>handleFiles(e.target.files)}/>
         </label>
       </div>
       {err&&<div className="Q-err" style={{marginBottom:8}}>{err}</div>}
       <div style={{fontSize:11,color:'var(--muted)',marginBottom:10,lineHeight:1.5}}>
-        Photos \u00b7 Audio \u2264 2 min \u00b7 Video \u2264 30 MB (3 min approx)
+        Photos · Audio ≤ 2 min · Video ≤ 30 MB (3 min approx)
       </div>
       {items.length===0&&<div style={{textAlign:'center',color:'var(--muted)',padding:'32px 0',fontSize:13}}>No media yet. Add photos, audio recordings, or videos.</div>}
       <div className="Q-media-grid">
@@ -729,8 +729,8 @@ function MediaLibraryPanel({recipeId,mediaRaw,onSave}){
             {item.type==='image'&&<img src={item.src} className="Q-media-thumb" alt={item.name} onClick={()=>setPlayer(item)}/>}
             {item.type==='audio'&&<div className="Q-media-audio"><span style={{fontSize:24}}>🎙</span><span style={{fontSize:10,color:'var(--muted)'}}>Audio</span></div>}
             {item.type==='video'&&<div className="Q-media-video"><span style={{fontSize:24}}>🎬</span><span style={{fontSize:10}}>Video</span></div>}
-            <div className="Q-media-label">{item.name.length>16?item.name.slice(0,13)+'\u2026':item.name}</div>
-            <button className="Q-media-rm" onClick={e=>{e.stopPropagation();remove(item.id)}}>\u00d7</button>
+            <div className="Q-media-label">{item.name.length>16?item.name.slice(0,13)+'…':item.name}</div>
+            <button className="Q-media-rm" onClick={e=>{e.stopPropagation();remove(item.id)}}>×</button>
           </div>
         ))}
       </div>
@@ -741,7 +741,7 @@ function MediaLibraryPanel({recipeId,mediaRaw,onSave}){
             {player.type==='audio'&&<audio controls autoPlay src={player.src}/>}
             {player.type==='video'&&<video controls autoPlay style={{maxWidth:'90vw',maxHeight:'80vh'}} src={player.src}/>}
             <div style={{fontFamily:'var(--mono)',fontSize:11,color:'rgba(255,255,255,.7)'}}>{player.name}</div>
-            <button className="btn ghost xs" onClick={()=>setPlayer(null)}>\u2715 Close</button>
+            <button className="btn ghost xs" onClick={()=>setPlayer(null)}>✕ Close</button>
           </div>
         </div>
       )}
@@ -772,12 +772,12 @@ function NotesPanel({recipe,onSave,onSaveMedia,onAddNote}){
   function addTab(){const newTab={id:uid(),name:'New Tab',content:''};const next=[...tabs,newTab];setTabs(next);setActiveIdx(next.length-1);save(next)}
   function renameTab(idx){const name=prompt('Tab name:',tabs[idx].name);if(name&&name.trim()){setTabs(prev=>{const next=prev.map((t,i)=>i===idx?{...t,name:name.trim()}:t);save(next);return next})}}
   function removeTab(idx){if(tabs.length===1){alert('Cannot remove the only tab.');return};if(!confirm(`Remove tab "${tabs[idx].name}"?`))return;const next=tabs.filter((_,i)=>i!==idx);setTabs(next);setActiveIdx(Math.min(activeIdx,next.length-1));save(next)}
-  async function aiSuggest(){setAiLoading(true);try{const r=await aiSuggestNotes(recipe,tabs[activeIdx]?.content||'');const t=r?.text||'';appendNote('\u2728 AI Suggestions:\n'+t)}catch(e){alert('AI suggest failed: '+e.message)}finally{setAiLoading(false)}}
+  async function aiSuggest(){setAiLoading(true);try{const r=await aiSuggestNotes(recipe,tabs[activeIdx]?.content||'');const t=r?.text||'';appendNote('✨ AI Suggestions:\n'+t)}catch(e){alert('AI suggest failed: '+e.message)}finally{setAiLoading(false)}}
   const activeTab=tabs[activeIdx]||tabs[0]
   return(
     <div className="Q-notes-panel">
       <div style={{display:'flex',gap:0,marginBottom:12,borderBottom:'2px solid var(--rule)'}}>
-        {[['notes','\uD83D\uDCDD Notes'],['media','\uD83D\uDDBC Media']].map(([k,l])=>(
+        {[['notes','📝 Notes'],['media','🖼 Media']].map(([k,l])=>(
           <button key={k} onClick={()=>setActiveSection(k)} style={{fontFamily:'var(--sans)',fontSize:12.5,fontWeight:600,background:'none',border:'none',padding:'8px 14px',cursor:'pointer',color:activeSection===k?'var(--navy)':'var(--muted)',borderBottom:activeSection===k?'2px solid var(--amber)':'2px solid transparent',marginBottom:-2}}>
             {l}
           </button>
@@ -788,26 +788,26 @@ function NotesPanel({recipe,onSave,onSaveMedia,onAddNote}){
           {tabs.map((t,i)=>(
             <div key={t.id} style={{display:'flex',alignItems:'center'}}>
               <button className={`Q-notes-tab${i===activeIdx?' active':''}`} onClick={()=>setActiveIdx(i)}>{t.name}</button>
-              {i===activeIdx&&<button onClick={()=>renameTab(i)} title="Rename" style={{background:'none',border:'none',cursor:'pointer',fontSize:11,color:'var(--muted)',padding:'0 3px',lineHeight:1,marginLeft:-2}}>\u270f</button>}
+              {i===activeIdx&&<button onClick={()=>renameTab(i)} title="Rename" style={{background:'none',border:'none',cursor:'pointer',fontSize:11,color:'var(--muted)',padding:'0 3px',lineHeight:1,marginLeft:-2}}>✏</button>}
             </div>
           ))}
           <button className="Q-notes-tab-add" onClick={addTab} title="Add tab">＋</button>
         </div>
         <div className="Q-notes-toolbar">
-          <span style={{fontFamily:'var(--mono)',fontSize:9.5,textTransform:'uppercase',letterSpacing:'.18em',color:'var(--navy)'}}>\uD83D\uDCDD {activeTab?.name}</span>
+          <span style={{fontFamily:'var(--mono)',fontSize:9.5,textTransform:'uppercase',letterSpacing:'.18em',color:'var(--navy)'}}>📝 {activeTab?.name}</span>
           <div style={{display:'flex',gap:6,alignItems:'center',flexWrap:'wrap'}}>
-            {saving&&<span style={{fontSize:10,color:'var(--muted)',fontFamily:'var(--mono)'}}>saving\u2026</span>}
-            {voice.recording&&<span className="Q-recording-pill">\uD83D\uDD34 Recording\u2026</span>}
+            {saving&&<span style={{fontSize:10,color:'var(--muted)',fontFamily:'var(--mono)'}}>saving…</span>}
+            {voice.recording&&<span className="Q-recording-pill">🔴 Recording…</span>}
             {tabs.length>1&&<button className="btn danger xs" onClick={()=>removeTab(activeIdx)}>Remove tab</button>}
-            <button className={`Q-voice-btn${voice.recording?' recording':''}`} onClick={voice.recording?voice.stop:voice.start} title="Voice note">{voice.recording?'\u23f9':'\uD83C\uDF99'}</button>
-            <button className="btn xs ai" onClick={aiSuggest} disabled={aiLoading}>{aiLoading?'\u2026':'\u2728 AI'}</button>
+            <button className={`Q-voice-btn${voice.recording?' recording':''}`} onClick={voice.recording?voice.stop:voice.start} title="Voice note">{voice.recording?'⏹':'🎙'}</button>
+            <button className="btn xs ai" onClick={aiSuggest} disabled={aiLoading}>{aiLoading?'…':'✨ AI'}</button>
           </div>
         </div>
-        {voice.recording&&<div style={{fontSize:11,color:'var(--muted)',marginBottom:6}}>\uD83D\uDD34 Recording\u2026 tap \u23f9 to stop. Transcribed + timestamp added.</div>}
+        {voice.recording&&<div style={{fontSize:11,color:'var(--muted)',marginBottom:6}}>🔴 Recording… tap ⏹ to stop. Transcribed + timestamp added.</div>}
         <textarea className="Q-notes-textarea"
           value={activeTab?.content||''}
           onChange={e=>updateContent(e.target.value)}
-          placeholder={`${activeTab?.name} for ${recipe.title}\u2026\n\n\uD83C\uDF99 Mic \u2192 transcribes with smart baking term correction + timestamp\n\u2728 AI \u2192 suggestions based on this recipe`}/>
+          placeholder={`${activeTab?.name} for ${recipe.title}…\n\n🎙 Mic → transcribes with smart baking term correction + timestamp\n✨ AI → suggestions based on this recipe`}/>
       </>}
       {activeSection==='media'&&<MediaLibraryPanel recipeId={recipe.id} mediaRaw={recipe.media_library||''} onSave={onSaveMedia}/>}
     </div>
@@ -850,12 +850,12 @@ function IDPanel({recipe,onSave}){
   const MAX_VALS={fat:40,water:80,sugar:40,protein:20,bakersHydration:100,saltP:3}
   return(
     <div className="ID-panel">
-      {saving&&<div style={{fontFamily:'var(--mono)',fontSize:10,color:'var(--id)',marginBottom:8}}>Saving\u2026</div>}
+      {saving&&<div style={{fontFamily:'var(--mono)',fontSize:10,color:'var(--id)',marginBottom:8}}>Saving…</div>}
       {/* ─ Parameters ─ */}
       <div className="ID-section">
         <div className="ID-section-header" onClick={()=>toggleSection('params')}>
-          <h3>\uD83D\uDCCA Macro Parameters</h3>
-          <span style={{fontSize:11,color:'var(--id)'}}>{openSections.params?'\u25b2':'\u25bc'}</span>
+          <h3>📊 Macro Parameters</h3>
+          <span style={{fontSize:11,color:'var(--id)'}}>{openSections.params?'▲':'▼'}</span>
           <span style={{fontFamily:'var(--mono)',fontSize:9,color:'var(--muted)',marginLeft:8}}>auto-calculated</span>
         </div>
         {openSections.params&&<div className="ID-section-body">
@@ -876,7 +876,7 @@ function IDPanel({recipe,onSave}){
             ))}
           </div>
           <div style={{fontSize:11,color:'var(--muted)',marginTop:6,lineHeight:1.5}}>
-            Total batch: <strong>{macros.total}g</strong> \u00b7 Fat: <strong>{macros.fat}g</strong> \u00b7 Water: <strong>{macros.water}g</strong> \u00b7 Sugar: <strong>{macros.sugar}g</strong> \u00b7 Salt: <strong>{macros.saltG}g</strong>
+            Total batch: <strong>{macros.total}g</strong> · Fat: <strong>{macros.fat}g</strong> · Water: <strong>{macros.water}g</strong> · Sugar: <strong>{macros.sugar}g</strong> · Salt: <strong>{macros.saltG}g</strong>
           </div>
           <div style={{fontSize:10,color:'var(--muted)',marginTop:4}}>
             * Estimated from ingredient types. Edit the recipe for accurate values.
@@ -886,8 +886,8 @@ function IDPanel({recipe,onSave}){
       {/* ─ Sensory ─ */}
       <div className="ID-section">
         <div className="ID-section-header" onClick={()=>toggleSection('sensory')}>
-          <h3>\uD83D\uDC45 Sensory Evaluation</h3>
-          <span style={{fontSize:11,color:'var(--id)'}}>{openSections.sensory?'\u25b2':'\u25bc'}</span>
+          <h3>👅 Sensory Evaluation</h3>
+          <span style={{fontSize:11,color:'var(--id)'}}>{openSections.sensory?'▲':'▼'}</span>
         </div>
         {openSections.sensory&&<div className="ID-section-body">
           <div className="ID-sensory-grid">
@@ -900,12 +900,12 @@ function IDPanel({recipe,onSave}){
                   <div className="ID-star-row">
                     {[1,2,3,4,5].map(n=>(
                       <span key={n} className="ID-star" onClick={()=>setSensory(attr,'score',n)} style={{opacity:val.score>=n?1:.25}}>
-                        {attr==='Overall score'?'\u2b50':'\u2605'}
+                        {attr==='Overall score'?'⭐':'★'}
                       </span>
                     ))}
                     {val.score&&<span style={{fontFamily:'var(--mono)',fontSize:10,color:'var(--id)',marginLeft:4}}>{val.score}/5</span>}
                   </div>
-                  <textarea className="ID-sensory-note" rows={2} value={val.note||''} onChange={e=>setSensory(attr,'note',e.target.value)} placeholder="Notes\u2026"/>
+                  <textarea className="ID-sensory-note" rows={2} value={val.note||''} onChange={e=>setSensory(attr,'note',e.target.value)} placeholder="Notes…"/>
                 </div>
               )
             })}
@@ -915,13 +915,13 @@ function IDPanel({recipe,onSave}){
       {/* ─ Timeline ─ */}
       <div className="ID-section">
         <div className="ID-section-header" onClick={()=>toggleSection('timeline')}>
-          <h3>\uD83D\uDCC5 Version Timeline</h3>
-          <span style={{fontSize:11,color:'var(--id)'}}>{openSections.timeline?'\u25b2':'\u25bc'}</span>
+          <h3>📅 Version Timeline</h3>
+          <span style={{fontSize:11,color:'var(--id)'}}>{openSections.timeline?'▲':'▼'}</span>
         </div>
         {openSections.timeline&&<div className="ID-section-body">
           <div className="Q-field" style={{marginBottom:12}}>
             <label>Goal / target result</label>
-            <textarea rows={2} value={data.goal||''} onChange={e=>setGoal(e.target.value)} placeholder="Describe the final desired result: color, texture, flavor profile, volume\u2026" style={{width:'100%',border:'1px solid var(--rule)',borderRadius:6,padding:'8px 10px',fontSize:13,fontFamily:'var(--sans)',color:'var(--ink)',resize:'vertical',background:'#fff'}}/>
+            <textarea rows={2} value={data.goal||''} onChange={e=>setGoal(e.target.value)} placeholder="Describe the final desired result: color, texture, flavor profile, volume…" style={{width:'100%',border:'1px solid var(--rule)',borderRadius:6,padding:'8px 10px',fontSize:13,fontFamily:'var(--sans)',color:'var(--ink)',resize:'vertical',background:'#fff'}}/>
           </div>
           {(data.versions||[]).length===0&&<div style={{color:'var(--muted)',fontSize:12.5,marginBottom:12}}>No versions yet. Add one to start tracking your evolution.</div>}
           <div className="ID-timeline">
@@ -929,7 +929,7 @@ function IDPanel({recipe,onSave}){
               <div className="ID-timeline-item" key={v.id}>
                 <div className={`ID-timeline-dot${i===(data.versions.length-1)?' active':''}${v.isGoal?' goal':''}`}/>
                 <div className="ID-timeline-card">
-                  {v.isGoal&&<span className="ID-timeline-badge goal">\uD83C\uDFAF Target version</span>}
+                  {v.isGoal&&<span className="ID-timeline-badge goal">🎯 Target version</span>}
                   {!v.isGoal&&<span className="ID-timeline-badge version">v{i+1}</span>}
                   <div className="ID-timeline-date">{v.date}</div>
                   <div className="ID-timeline-title">{v.title}</div>
@@ -941,7 +941,7 @@ function IDPanel({recipe,onSave}){
           </div>
           {addingVersion?(
             <div style={{background:'#F8FBFF',border:'1px solid #C8DFF0',borderRadius:8,padding:12,marginTop:10}}>
-              <div className="Q-field"><label>Version name / description</label><input value={newVersion.title} onChange={e=>setNewVersion(p=>({...p,title:e.target.value}))} placeholder="v3 \u2014 reduced sugar 5%, added orange zest"/></div>
+              <div className="Q-field"><label>Version name / description</label><input value={newVersion.title} onChange={e=>setNewVersion(p=>({...p,title:e.target.value}))} placeholder="v3 — reduced sugar 5%, added orange zest"/></div>
               <div className="Q-field"><label>Notes</label><textarea rows={2} value={newVersion.notes} onChange={e=>setNewVersion(p=>({...p,notes:e.target.value}))} placeholder="What changed? Results?"/></div>
               <label style={{display:'flex',alignItems:'center',gap:6,fontSize:12.5,cursor:'pointer',marginBottom:10}}>
                 <input type="checkbox" checked={newVersion.isGoal} onChange={e=>setNewVersion(p=>({...p,isGoal:e.target.checked}))}/> Mark as target version
@@ -959,8 +959,8 @@ function IDPanel({recipe,onSave}){
       {/* ─ Nutrition ─ */}
       <div className="ID-section">
         <div className="ID-section-header" onClick={()=>toggleSection('nutrition')}>
-          <h3>\uD83E\uDDEC Nutritional Table</h3>
-          <span style={{fontSize:11,color:'var(--id)'}}>{openSections.nutrition?'\u25b2':'\u25bc'}</span>
+          <h3>🧬 Nutritional Table</h3>
+          <span style={{fontSize:11,color:'var(--id)'}}>{openSections.nutrition?'▲':'▼'}</span>
           <span style={{fontFamily:'var(--mono)',fontSize:9,color:'var(--muted)',marginLeft:8}}>estimated</span>
         </div>
         {openSections.nutrition&&<div className="ID-section-body">
@@ -1010,7 +1010,7 @@ function ComparePanel({recipes,onClose}){
       <div className="Q-compare-panel">
         <div className="Q-compare-header">
           <span style={{fontFamily:'var(--serif)',fontSize:17,color:'var(--navy)',flex:1}}>⚖ Recipe Comparison</span>
-          <button className="btn ghost xs" onClick={onClose}>\u2715 Close</button>
+          <button className="btn ghost xs" onClick={onClose}>✕ Close</button>
         </div>
         <div className="Q-compare-body">
           <div style={{marginBottom:14}}>
@@ -1056,9 +1056,9 @@ function ComparePanel({recipes,onClose}){
                   {allMacros.length>=2&&(()=>{
                     const vals=allMacros.map(x=>x.m[param.k]||0)
                     const max=Math.max(...vals),min=Math.min(...vals),diff=Math.round((max-min)*10)/10
-                    if(diff===0)return<div style={{fontSize:10,color:'var(--green)',marginTop:2}}>\u2713 Identical</div>
+                    if(diff===0)return<div style={{fontSize:10,color:'var(--green)',marginTop:2}}>✓ Identical</div>
                     const maxR=allMacros[vals.indexOf(max)].r
-                    return<div style={{fontSize:10,color:'var(--muted)',marginTop:2}}>↕ {diff}% difference \u00b7 highest: <strong>{maxR.title}</strong></div>
+                    return<div style={{fontSize:10,color:'var(--muted)',marginTop:2}}>↕ {diff}% difference · highest: <strong>{maxR.title}</strong></div>
                   })()}
                 </div>
               ))}
@@ -1114,7 +1114,7 @@ function AIAssistant({recipe,onAction,onRequestSaveNote}){
   }
   function clearConv(){setMessages([]);try{localStorage.removeItem(CONV_KEY)}catch(_){}}
   async function saveAsNote(){
-    const content=[`AI Conversation \u2014 ${ts()}`,...messages.map(m=>`${m.role==='user'?'You':'AI'}: ${m.clean||m.content}`)].join('\n\n')
+    const content=[`AI Conversation — ${ts()}`,...messages.map(m=>`${m.role==='user'?'You':'AI'}: ${m.clean||m.content}`)].join('\n\n')
     onRequestSaveNote(content)
   }
   return(
@@ -1128,7 +1128,7 @@ function AIAssistant({recipe,onAction,onRequestSaveNote}){
       </div>
       {messages.length===0&&(
         <div className="Q-assistant-welcome">
-          <div style={{fontSize:32,marginBottom:8}}>\uD83E\uDD16</div>
+          <div style={{fontSize:32,marginBottom:8}}>🤖</div>
           <div style={{fontSize:14,fontWeight:700,color:'var(--ai)',marginBottom:5}}>AI Recipe Assistant</div>
           <div style={{fontSize:12.5,color:'var(--muted)',lineHeight:1.55,marginBottom:12}}>Ask anything or give instructions to modify this recipe.</div>
           <div className="Q-quick-chips">{chips.map(c=><button key={c} className="Q-chip" onClick={()=>setInput(c)}>{c}</button>)}</div>
@@ -1138,7 +1138,7 @@ function AIAssistant({recipe,onAction,onRequestSaveNote}){
         {messages.map((m,i)=>(
           <div key={i} className={`Q-chat-msg ${m.role}`}>
             {m.clean||m.content}
-            {m.hasActions&&<div className="Q-chat-action-badge">\u2713 Applied</div>}
+            {m.hasActions&&<div className="Q-chat-action-badge">✓ Applied</div>}
           </div>
         ))}
         {loading&&<div className="Q-chat-msg assistant"><div className="Q-chat-typing"><span/><span/><span/></div></div>}
@@ -1146,11 +1146,11 @@ function AIAssistant({recipe,onAction,onRequestSaveNote}){
       </div>
       <div className="Q-chat-input-area">
         <textarea className="Q-chat-input" value={input} onChange={e=>setInput(e.target.value)} rows={2} disabled={loading}
-          placeholder="Ask or instruct\u2026 (Enter to send, Shift+Enter for newline)"
+          placeholder="Ask or instruct… (Enter to send, Shift+Enter for newline)"
           onKeyDown={e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send()}}}/>
         <div style={{display:'flex',flexDirection:'column',gap:5}}>
-          <button className={`Q-voice-btn${voice.recording?' recording':''}`} onClick={voice.recording?voice.stop:voice.start}>{voice.recording?'\u23f9':'\uD83C\uDF99'}</button>
-          <button className="btn ai xs" onClick={send} disabled={loading||!input.trim()}>\u2191</button>
+          <button className={`Q-voice-btn${voice.recording?' recording':''}`} onClick={voice.recording?voice.stop:voice.start}>{voice.recording?'⏹':'🎙'}</button>
+          <button className="btn ai xs" onClick={send} disabled={loading||!input.trim()}>↑</button>
         </div>
       </div>
     </div>
@@ -1171,7 +1171,7 @@ function AppAIChat({recipes,onAction,onClose}){
   const endRef=useRef(null)
   const voice=useVoiceInput(t=>setInput(p=>p+(p?' ':'')+t),true)
   useEffect(()=>endRef.current?.scrollIntoView({behavior:'smooth'}),[messages])
-  const chips=['Add 3 French pastry recipes','Search for brioche','Delete the recipe named\u2026','Create a recipe for sourdough bread','List all recipes with category']
+  const chips=['Add 3 French pastry recipes','Search for brioche','Delete the recipe named…','Create a recipe for sourdough bread','List all recipes with category']
   async function send(){
     if(!input.trim()||loading)return
     const msg={role:'user',content:input.trim()}
@@ -1187,14 +1187,14 @@ function AppAIChat({recipes,onAction,onClose}){
   return(
     <>
       <div className="Q-app-ai-header">
-        <div className="Q-app-ai-title">\uD83C\uDF10 App Assistant</div>
-        <button className="btn ghost xs" onClick={onClose}>\u2715 Close</button>
+        <div className="Q-app-ai-title">🌐 App Assistant</div>
+        <button className="btn ghost xs" onClick={onClose}>✕ Close</button>
       </div>
       <div className="Q-app-ai-msgs">
         {messages.length===0&&(
           <div style={{padding:'16px 0',textAlign:'center'}}>
-            <div style={{fontSize:28,marginBottom:8}}>\uD83C\uDF10</div>
-            <div style={{fontSize:13,fontWeight:700,color:'var(--ai)',marginBottom:5}}>Quaderno AI+D \u2014 App Assistant</div>
+            <div style={{fontSize:28,marginBottom:8}}>🌐</div>
+            <div style={{fontSize:13,fontWeight:700,color:'var(--ai)',marginBottom:5}}>Quaderno AI+D — App Assistant</div>
             <div style={{fontSize:12,color:'var(--muted)',lineHeight:1.5,marginBottom:12}}>Search, create, batch-import, delete recipes. Use natural language.</div>
             <div className="Q-quick-chips" style={{justifyContent:'center'}}>{chips.map(c=><button key={c} className="Q-chip" onClick={()=>setInput(c)}>{c}</button>)}</div>
           </div>
@@ -1202,7 +1202,7 @@ function AppAIChat({recipes,onAction,onClose}){
         {messages.map((m,i)=>(
           <div key={i} className={`Q-chat-msg ${m.role}`} style={{maxWidth:'94%'}}>
             {m.clean||m.content}
-            {m.hasActions&&<div className="Q-chat-action-badge">\u2713 Done</div>}
+            {m.hasActions&&<div className="Q-chat-action-badge">✓ Done</div>}
           </div>
         ))}
         {loading&&<div className="Q-chat-msg assistant"><div className="Q-chat-typing"><span/><span/><span/></div></div>}
@@ -1211,11 +1211,11 @@ function AppAIChat({recipes,onAction,onClose}){
       <div className="Q-app-ai-input">
         <textarea style={{flex:1,border:'1px solid var(--rule)',borderRadius:8,padding:'8px 10px',fontSize:13,fontFamily:'var(--sans)',color:'var(--ink)',resize:'none',background:'#fff'}}
           value={input} onChange={e=>setInput(e.target.value)} rows={2} disabled={loading}
-          placeholder="Ask anything\u2026 (Enter to send)"
+          placeholder="Ask anything… (Enter to send)"
           onKeyDown={e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send()}}}/>
         <div style={{display:'flex',flexDirection:'column',gap:5}}>
-          <button className={`Q-voice-btn${voice.recording?' recording':''}`} onClick={voice.recording?voice.stop:voice.start}>{voice.recording?'\u23f9':'\uD83C\uDF99'}</button>
-          <button className="btn ai xs" onClick={send} disabled={loading||!input.trim()}>\u2191</button>
+          <button className={`Q-voice-btn${voice.recording?' recording':''}`} onClick={voice.recording?voice.stop:voice.start}>{voice.recording?'⏹':'🎙'}</button>
+          <button className="btn ai xs" onClick={send} disabled={loading||!input.trim()}>↑</button>
         </div>
       </div>
     </>
@@ -1264,8 +1264,8 @@ function RecipeView({recipe,onEdit,onDelete,onUpdate,allRecipes,onCopy}){
   }
   function applyScale(){
     let factor=0,label=''
-    if(scaleMode==='factor'){factor=parseFloat(scaleFactor)||0;if(!factor)return;label=`\u00d7${factor}`}
-    else{const cur=getTotalGrams(recipe.ingredients||[]);if(!cur){alert('No gram quantities found. Use "\u00d7 Multiply" mode.');return};let tg=0;if(scaleMode==='pieces'){const pc=parseFloat(scalePieces)||0,g=parseFloat(scaleGpp)||0;if(!pc||!g)return;tg=pc*g;label=`${pc}\u00d7${g}g=${tg.toFixed(0)}g`}else{tg=parseFloat(scaleTotal)||0;if(!tg)return;label=`${tg.toFixed(0)}g`};factor=tg/cur}
+    if(scaleMode==='factor'){factor=parseFloat(scaleFactor)||0;if(!factor)return;label=`×${factor}`}
+    else{const cur=getTotalGrams(recipe.ingredients||[]);if(!cur){alert('No gram quantities found. Use "× Multiply" mode.');return};let tg=0;if(scaleMode==='pieces'){const pc=parseFloat(scalePieces)||0,g=parseFloat(scaleGpp)||0;if(!pc||!g)return;tg=pc*g;label=`${pc}×${g}g=${tg.toFixed(0)}g`}else{tg=parseFloat(scaleTotal)||0;if(!tg)return;label=`${tg.toFixed(0)}g`};factor=tg/cur}
     setAppliedScale({factor,label});setShowScale(false);setChecked(new Set());setHighlightedSteps(new Set())
   }
   async function handleTranslate(){
@@ -1283,7 +1283,7 @@ function RecipeView({recipe,onEdit,onDelete,onUpdate,allRecipes,onCopy}){
   }
   async function handleAssistantAction(action){
     switch(action.type){
-      case'scale':setAppliedScale({factor:action.factor,label:`AI \u00d7${action.factor}`});break
+      case'scale':setAppliedScale({factor:action.factor,label:`AI ×${action.factor}`});break
       case'translate':setTranslating(true);try{const r=await translateRecipe(recipe,action.language);setTranslated({...r,thumbnail:recipe.thumbnail,source_photos:recipe.source_photos})}catch(e){setTransErr(e.message)}finally{setTranslating(false)};break
       case'update_field':await onUpdate({...recipe,[action.field]:action.value});break
       case'update_ingredients':await onUpdate({...recipe,ingredients:action.ingredients});break
@@ -1307,7 +1307,7 @@ function RecipeView({recipe,onEdit,onDelete,onUpdate,allRecipes,onCopy}){
         <select style={{border:'1px solid var(--rule)',borderRadius:5,padding:'4px 7px',fontSize:11.5,fontFamily:'var(--mono)',background:'#fff',color:'var(--ink)'}} value={targetLang} onChange={e=>setTargetLang(e.target.value)}>
           {LANGS.map(l=><option key={l}>{l}</option>)}
         </select>
-        <button className="btn xs green" onClick={handleTranslate} disabled={translating}>{translating?'\u2026':`\uD83C\uDF10 ${targetLang}`}</button>
+        <button className="btn xs green" onClick={handleTranslate} disabled={translating}>{translating?'…':`🌐 ${targetLang}`}</button>
         {transErr&&<span style={{color:'#9b2c2c',fontSize:10}}>{transErr}</span>}
         <div className="right">
           <button className="btn amber xs" onClick={()=>exportXLS(viewR,pctOpts)}>↓ XLS</button>
@@ -1321,10 +1321,10 @@ function RecipeView({recipe,onEdit,onDelete,onUpdate,allRecipes,onCopy}){
           <button className="btn teal xs" onClick={()=>setShowCopyLangMenu(p=>!p)}>📋 Copy recipe</button>
           {showCopyLangMenu&&(
             <div style={{position:'absolute',right:0,top:'100%',marginTop:4,background:'#fff',border:'1px solid var(--rule)',borderRadius:8,boxShadow:'0 4px 16px rgba(0,0,0,.12)',zIndex:50,minWidth:200,padding:8}}>
-              <div style={{fontFamily:'var(--mono)',fontSize:9.5,textTransform:'uppercase',letterSpacing:'.12em',color:'var(--muted)',padding:'4px 8px 8px'}}>Copy as\u2026</div>
-              <button onClick={()=>handleCopyWithLang(null)} style={{width:'100%',textAlign:'left',padding:'7px 10px',background:'none',border:'none',cursor:'pointer',fontSize:13,borderBottom:'1px solid var(--rule)'}}>\uD83D\uDCCB Plain copy (same language)</button>
+              <div style={{fontFamily:'var(--mono)',fontSize:9.5,textTransform:'uppercase',letterSpacing:'.12em',color:'var(--muted)',padding:'4px 8px 8px'}}>Copy as…</div>
+              <button onClick={()=>handleCopyWithLang(null)} style={{width:'100%',textAlign:'left',padding:'7px 10px',background:'none',border:'none',cursor:'pointer',fontSize:13,borderBottom:'1px solid var(--rule)'}}>📋 Plain copy (same language)</button>
               {LANGS.map(l=>(
-                <button key={l} onClick={()=>handleCopyWithLang(l)} style={{width:'100%',textAlign:'left',padding:'7px 10px',background:'none',border:'none',cursor:'pointer',fontSize:13,color:'var(--navy)'}}>\uD83C\uDF10 {l} version (fixed)</button>
+                <button key={l} onClick={()=>handleCopyWithLang(l)} style={{width:'100%',textAlign:'left',padding:'7px 10px',background:'none',border:'none',cursor:'pointer',fontSize:13,color:'var(--navy)'}}>🌐 {l} version (fixed)</button>
               ))}
             </div>
           )}
@@ -1334,17 +1334,17 @@ function RecipeView({recipe,onEdit,onDelete,onUpdate,allRecipes,onCopy}){
         <div className="Q-scale-panel">
           <h4>Scale recipe</h4>
           <div style={{display:'flex',flexWrap:'wrap',gap:8,marginBottom:10}}>
-            {[['factor','\u00d7 Multiply'],['pieces','Pieces \u00d7 g/piece'],['total','Total weight']].map(([k,l])=>(
+            {[['factor','× Multiply'],['pieces','Pieces × g/piece'],['total','Total weight']].map(([k,l])=>(
               <label key={k} style={{display:'flex',alignItems:'center',gap:4,fontSize:12,cursor:'pointer'}}><input type="radio" checked={scaleMode===k} onChange={()=>setScaleMode(k)}/>{l}</label>
             ))}
           </div>
-          {scaleMode==='factor'&&<div className="Q-scale-row"><label>Factor</label><input type="number" value={scaleFactor} onChange={e=>setScaleFactor(e.target.value)} placeholder="2" min=".01" step=".1"/><span style={{fontSize:11,color:'var(--muted)'}}>\u00d7 all quantities</span></div>}
-          {scaleMode==='pieces'&&<div className="Q-scale-row"><label>Pieces</label><input type="number" value={scalePieces} onChange={e=>setScalePieces(e.target.value)} placeholder="6"/><span style={{fontSize:11,color:'var(--muted)'}}>\u00d7</span><input type="number" value={scaleGpp} onChange={e=>setScaleGpp(e.target.value)} placeholder="1000"/><label>g/piece</label></div>}
-          {scaleMode==='total'&&<div className="Q-scale-row"><label>Total</label><input type="number" value={scaleTotal} onChange={e=>setScaleTotal(e.target.value)} placeholder="2000"/><span style={{fontSize:11,color:'var(--muted)'}}>g \u00b7 current: {getTotalGrams(recipe.ingredients||[]).toFixed(0)}g</span></div>}
+          {scaleMode==='factor'&&<div className="Q-scale-row"><label>Factor</label><input type="number" value={scaleFactor} onChange={e=>setScaleFactor(e.target.value)} placeholder="2" min=".01" step=".1"/><span style={{fontSize:11,color:'var(--muted)'}}>× all quantities</span></div>}
+          {scaleMode==='pieces'&&<div className="Q-scale-row"><label>Pieces</label><input type="number" value={scalePieces} onChange={e=>setScalePieces(e.target.value)} placeholder="6"/><span style={{fontSize:11,color:'var(--muted)'}}>×</span><input type="number" value={scaleGpp} onChange={e=>setScaleGpp(e.target.value)} placeholder="1000"/><label>g/piece</label></div>}
+          {scaleMode==='total'&&<div className="Q-scale-row"><label>Total</label><input type="number" value={scaleTotal} onChange={e=>setScaleTotal(e.target.value)} placeholder="2000"/><span style={{fontSize:11,color:'var(--muted)'}}>g · current: {getTotalGrams(recipe.ingredients||[]).toFixed(0)}g</span></div>}
           <div style={{display:'flex',gap:7}}><button className="btn amber xs" onClick={applyScale}>Apply</button><button className="btn ghost xs" onClick={()=>setShowScale(false)}>Cancel</button></div>
         </div>
       )}
-      {showPct&&<div className="Q-pct-bar"><label>% Basis:</label><select value={pctMode} onChange={e=>setPctMode(e.target.value)}><option value="baker">Baker's % (flour=100%)</option><option value="mass">Total mass %</option><option value="custom">Custom base</option></select>{pctMode==='custom'&&<select value={pctBase} onChange={e=>setPctBase(e.target.value)}><option value="">\u2014 select \u2014</option>{pctBaseOpts.map(n=><option key={n}>{n}</option>)}</select>}</div>}
+      {showPct&&<div className="Q-pct-bar"><label>% Basis:</label><select value={pctMode} onChange={e=>setPctMode(e.target.value)}><option value="baker">Baker's % (flour=100%)</option><option value="mass">Total mass %</option><option value="custom">Custom base</option></select>{pctMode==='custom'&&<select value={pctBase} onChange={e=>setPctBase(e.target.value)}><option value="">— select —</option>{pctBaseOpts.map(n=><option key={n}>{n}</option>)}</select>}</div>}
       <div style={{fontFamily:'var(--mono)',fontSize:10,textTransform:'uppercase',letterSpacing:'.18em',color:'var(--navy)',marginBottom:7}}>
         Ingredients{checked.size>0&&<button style={{marginLeft:10,fontFamily:'var(--mono)',fontSize:9,background:'none',border:'none',cursor:'pointer',color:'var(--muted)',textDecoration:'underline'}} onClick={()=>{setChecked(new Set());setHighlightedSteps(new Set())}}>clear</button>}
       </div>
@@ -1361,7 +1361,7 @@ function RecipeView({recipe,onEdit,onDelete,onUpdate,allRecipes,onCopy}){
                 const pct=pctData?pctData[ii]:null
                 return(
                   <li key={ii} className={`Q-ing-row${isCk?' checked':''}`} onClick={()=>handleIngToggle(rawIdx)}>
-                    <span className="Q-ing-check">{isCk?'\u2713':'\u25cb'}</span>
+                    <span className="Q-ing-check">{isCk?'✓':'○'}</span>
                     {mm?<><span className="Q-ing-qty">{mm[1].trim()}</span><span className="Q-ing-name">{mm[2].trim()}</span></>:<span className="Q-ing-name" style={{flex:1}}>{ing}</span>}
                     {pct?.pct!=null&&<span className={`Q-pct-badge${pct.isBase?' base':''}`}>{pct.pct.toFixed(1)}%</span>}
                   </li>
@@ -1385,10 +1385,10 @@ function RecipeView({recipe,onEdit,onDelete,onUpdate,allRecipes,onCopy}){
         <h1>{viewR.title||'Untitled'}</h1>
         {recipe.thumbnail&&<img src={recipe.thumbnail} className="Q-recipe-thumb" onClick={()=>setLightboxSrc(recipe.thumbnail)} alt={recipe.title}/>}
       </div>
-      {appliedScale&&<div className="Q-banner scale">⚖ Scaled \u2014 {appliedScale.label}<button onClick={()=>{setAppliedScale(null);setChecked(new Set());setHighlightedSteps(new Set())}}>Reset</button></div>}
-      {translated&&<div className="Q-banner trans">\uD83C\uDF10 {targetLang} translation (thumbnail preserved)<button onClick={()=>setTranslated(null)}>Original</button></div>}
-      {recipe.fixed_lang&&<div className="Q-banner copy">\uD83D\uDCCC Fixed language version \u2014 {recipe.fixed_lang}</div>}
-      {recipe.copied_from&&<div style={{fontFamily:'var(--mono)',fontSize:9.5,color:'var(--muted)',marginBottom:8}}>\uD83D\uDCCB Copy of: {allRecipes.find(r=>r.id===recipe.copied_from)?.title||recipe.copied_from}</div>}
+      {appliedScale&&<div className="Q-banner scale">⚖ Scaled — {appliedScale.label}<button onClick={()=>{setAppliedScale(null);setChecked(new Set());setHighlightedSteps(new Set())}}>Reset</button></div>}
+      {translated&&<div className="Q-banner trans">🌐 {targetLang} translation (thumbnail preserved)<button onClick={()=>setTranslated(null)}>Original</button></div>}
+      {recipe.fixed_lang&&<div className="Q-banner copy">📌 Fixed language version — {recipe.fixed_lang}</div>}
+      {recipe.copied_from&&<div style={{fontFamily:'var(--mono)',fontSize:9.5,color:'var(--muted)',marginBottom:8}}>📋 Copy of: {allRecipes.find(r=>r.id===recipe.copied_from)?.title||recipe.copied_from}</div>}
       <dl className="Q-meta">
         {viewR.category&&<div className="Q-meta-item"><dt>Category</dt><dd>{viewR.category}</dd></div>}
         {viewR.time&&<div className="Q-meta-item"><dt>Time</dt><dd>{viewR.time}</dd></div>}
@@ -1396,7 +1396,7 @@ function RecipeView({recipe,onEdit,onDelete,onUpdate,allRecipes,onCopy}){
         {viewR.source&&<div className="Q-meta-item"><dt>Source</dt><dd>{viewR.source}</dd></div>}
       </dl>
       <div className="Q-tabs">
-        {[['recipe','\uD83C� Recipe'],['notes','\uD83D\uDCDD Notes & Media'],['id','\uD83D\uDD2C I+D'],['ai','\uD83E\uDD16 AI']].map(([k,l])=>(
+        {[['recipe','�� Recipe'],['notes','📝 Notes & Media'],['id','🔬 I+D'],['ai','🤖 AI']].map(([k,l])=>(
           <button key={k} className={`Q-tab-btn${tab===k?' active':''}${k==='ai'?' ai-tab':''}${k==='id'?' id-tab':''}`} onClick={()=>setTab(k)}>{l}</button>
         ))}
       </div>
@@ -1436,13 +1436,13 @@ function RecipeEditor({initial,onSave,onCancel}){
       <h2>{initial?.id?'Edit recipe':'New recipe'}</h2>
       <div style={{border:'1.5px solid var(--rule)',borderRadius:10,marginBottom:18,overflow:'hidden'}}>
         <div style={{display:'flex',borderBottom:'1px solid var(--rule)',background:'#f5efe6'}}>
-          {[['text','\uD83D\uDCCB Paste text'],['photo','\uD83D\uDCF7 From photo']].map(([k,l])=>(
+          {[['text','📋 Paste text'],['photo','📷 From photo']].map(([k,l])=>(
             <button key={k} onClick={()=>{setTab(k);setErr('')}} style={{flex:1,padding:'9px 8px',border:'none',cursor:'pointer',fontFamily:'var(--mono)',fontSize:10.5,fontWeight:600,textTransform:'uppercase',letterSpacing:'.1em',background:tab===k?'#fff':'transparent',color:tab===k?'var(--navy)':'var(--muted)',borderBottom:tab===k?'2px solid var(--amber)':'2px solid transparent'}}>{l}</button>
           ))}
         </div>
         <div style={{padding:'13px 15px'}}>
-          {tab==='text'&&<><p style={{fontSize:11.5,color:'var(--muted)',margin:'0 0 9px',lineHeight:1.5}}>Paste any recipe text. Claude structures it automatically.</p><textarea value={rawText} onChange={e=>setRawText(e.target.value)} rows={6} placeholder="Paste recipe text here\u2026" style={{width:'100%',border:'1px solid var(--rule)',borderRadius:7,padding:'9px 11px',fontSize:13,fontFamily:'var(--sans)',color:'var(--ink)',resize:'vertical',background:'#fff',display:'block',marginBottom:9}}/><button className="btn amber xs" onClick={runFromText} disabled={scanning||!rawText.trim()} style={{width:'100%',padding:'9px',fontSize:13}}>{scanning?'Structuring\u2026':'Structure with Claude \u2192'}</button></>}
-          {tab==='photo'&&<><p style={{fontSize:11.5,color:'var(--muted)',margin:'0 0 9px',lineHeight:1.5}}>Upload 1\u20136 photos. Auto-compressed.</p><div onDrop={handleDrop} onDragOver={e=>{e.preventDefault();setDragOver(true)}} onDragLeave={()=>setDragOver(false)} style={{position:'relative',borderRadius:8,marginBottom:9,border:`2px dashed ${dragOver?'var(--navy)':'var(--amber)'}`,background:dragOver?'#EAF2EE':'rgba(188,108,44,.05)',padding:'18px 12px',textAlign:'center',cursor:scanning?'default':'pointer'}}><div style={{pointerEvents:'none'}}><div style={{fontSize:22,marginBottom:4}}>\uD83D\uDCF7</div><div style={{fontSize:12,fontWeight:600,color:'var(--navy)'}}>Tap \u00b7 drag & drop \u00b7 paste \u2318V</div></div><input type="file" accept="image/*" multiple disabled={scanning} onChange={handleFileInput} style={{position:'absolute',inset:0,opacity:0,width:'100%',height:'100%',cursor:scanning?'default':'pointer'}}/></div>{images.length>0&&<><div className="Q-thumbs">{images.map((im,i)=><div className="Q-thumb" key={i}><img src={im.url} alt=""/><button onClick={()=>setImages(p=>p.filter((_,j)=>j!==i))} disabled={scanning}>\u00d7</button></div>)}</div><button className="btn amber xs" onClick={runFromPhotos} disabled={scanning} style={{marginTop:7,width:'100%',padding:'9px',fontSize:13}}>{scanning?`Reading ${images.length} photo${images.length>1?'s':''}\u2026`:'Extract with Claude \u2192'}</button></>}}</>
+          {tab==='text'&&<><p style={{fontSize:11.5,color:'var(--muted)',margin:'0 0 9px',lineHeight:1.5}}>Paste any recipe text. Claude structures it automatically.</p><textarea value={rawText} onChange={e=>setRawText(e.target.value)} rows={6} placeholder="Paste recipe text here…" style={{width:'100%',border:'1px solid var(--rule)',borderRadius:7,padding:'9px 11px',fontSize:13,fontFamily:'var(--sans)',color:'var(--ink)',resize:'vertical',background:'#fff',display:'block',marginBottom:9}}/><button className="btn amber xs" onClick={runFromText} disabled={scanning||!rawText.trim()} style={{width:'100%',padding:'9px',fontSize:13}}>{scanning?'Structuring…':'Structure with Claude →'}</button></>}
+          {tab==='photo'&&<><p style={{fontSize:11.5,color:'var(--muted)',margin:'0 0 9px',lineHeight:1.5}}>Upload 1–6 photos. Auto-compressed.</p><div onDrop={handleDrop} onDragOver={e=>{e.preventDefault();setDragOver(true)}} onDragLeave={()=>setDragOver(false)} style={{position:'relative',borderRadius:8,marginBottom:9,border:`2px dashed ${dragOver?'var(--navy)':'var(--amber)'}`,background:dragOver?'#EAF2EE':'rgba(188,108,44,.05)',padding:'18px 12px',textAlign:'center',cursor:scanning?'default':'pointer'}}><div style={{pointerEvents:'none'}}><div style={{fontSize:22,marginBottom:4}}>📷</div><div style={{fontSize:12,fontWeight:600,color:'var(--navy)'}}>Tap · drag & drop · paste ⌘V</div></div><input type="file" accept="image/*" multiple disabled={scanning} onChange={handleFileInput} style={{position:'absolute',inset:0,opacity:0,width:'100%',height:'100%',cursor:scanning?'default':'pointer'}}/></div>{images.length>0&&<><div className="Q-thumbs">{images.map((im,i)=><div className="Q-thumb" key={i}><img src={im.url} alt=""/><button onClick={()=>setImages(p=>p.filter((_,j)=>j!==i))} disabled={scanning}>×</button></div>)}</div><button className="btn amber xs" onClick={runFromPhotos} disabled={scanning} style={{marginTop:7,width:'100%',padding:'9px',fontSize:13}}>{scanning?`Reading ${images.length} photo${images.length>1?'s':''}…`:'Extract with Claude →'}</button></>}}</>
           }
           {err&&<div className="Q-err" style={{marginTop:7}}>{err}</div>}
         </div>
@@ -1454,7 +1454,7 @@ function RecipeEditor({initial,onSave,onCancel}){
           <label className="btn ghost xs" style={{cursor:'pointer'}}>{r.thumbnail?'Change':'Add photo'}<input type="file" accept="image/*" onChange={handleThumbnail} style={{display:'none'}}/></label>
           {r.thumbnail&&<button className="btn danger xs" onClick={()=>setR(p=>({...p,thumbnail:''}))}>Remove</button>}
         </div>
-        <div className="hint">Compressed \u00b7 appears in list, recipe header, and all exports</div>
+        <div className="hint">Compressed · appears in list, recipe header, and all exports</div>
       </div>
       <div className="Q-field"><label>Title</label><input value={r.title} onChange={set('title')} placeholder="Panettone Classico"/></div>
       <div className="Q-grid2">
@@ -1463,19 +1463,19 @@ function RecipeEditor({initial,onSave,onCancel}){
       </div>
       <div className="Q-grid2">
         <div className="Q-field"><label>Time</label><input value={r.time} onChange={set('time')} placeholder="~36 h"/></div>
-        <div className="Q-field"><label>Yield</label><input value={r.servings} onChange={set('servings')} placeholder="2 \u00d7 1 kg"/></div>
+        <div className="Q-field"><label>Yield</label><input value={r.servings} onChange={set('servings')} placeholder="2 × 1 kg"/></div>
       </div>
       <div className="Q-field">
-        <label>Ingredients \u2014 drag \u2807 to reorder</label>
+        <label>Ingredients — drag ⠇ to reorder</label>
         <DraggableIngList lines={ingredientLines} onChange={setIngredientLines}/>
-        <div className="hint">Drag to reorder \u00b7 \u00d7 to remove \u00b7 use <strong>+ Section</strong> for ## headers</div>
+        <div className="hint">Drag to reorder · × to remove · use <strong>+ Section</strong> for ## headers</div>
       </div>
       <div className="Q-field">
-        <label>Method \u2014 one step per line</label>
-        <textarea rows={7} value={(r.steps||[]).join('\n')} onChange={e=>setR(p=>({...p,steps:e.target.value.split('\n')}))} placeholder="Step 1\u2026"/>
+        <label>Method — one step per line</label>
+        <textarea rows={7} value={(r.steps||[]).join('\n')} onChange={e=>setR(p=>({...p,steps:e.target.value.split('\n')}))} placeholder="Step 1…"/>
       </div>
-      <div className="Q-field"><label>Baker's notes</label><textarea rows={2} value={r.notes} onChange={set('notes')} placeholder="Temperatures, flour specs, adjustments\u2026"/></div>
-      {r.fixed_lang&&<div style={{fontFamily:'var(--mono)',fontSize:10,color:'var(--teal)',marginBottom:10}}>\uD83D\uDCCC Fixed language: {r.fixed_lang}</div>}
+      <div className="Q-field"><label>Baker's notes</label><textarea rows={2} value={r.notes} onChange={set('notes')} placeholder="Temperatures, flour specs, adjustments…"/></div>
+      {r.fixed_lang&&<div style={{fontFamily:'var(--mono)',fontSize:10,color:'var(--teal)',marginBottom:10}}>📌 Fixed language: {r.fixed_lang}</div>}
       <div className="Q-ed-foot">
         <button className="btn" onClick={save}>Save recipe</button>
         <button className="btn ghost" onClick={onCancel}>Cancel</button>
@@ -1556,24 +1556,24 @@ export default function App(){
           {saveErr&&<span style={{color:'#9b2c2c',fontSize:10,maxWidth:160,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{saveErr}</span>}
           <span style={{fontFamily:'var(--mono)',fontSize:10,color:'var(--muted)'}}>{!loading&&`${recipes.length} recipe${recipes.length!==1?'s':''}`}</span>
           <button className="btn id xs" onClick={()=>setShowCompare(true)} title="Compare recipes">⚖ Compare</button>
-          <button className="btn ai xs" onClick={()=>setShowAppAI(true)} title="App AI Assistant">\uD83C\uDF10 AI</button>
+          <button className="btn ai xs" onClick={()=>setShowAppAI(true)} title="App AI Assistant">🌐 AI</button>
           <button className="btn amber" onClick={()=>{setMode('new');setSelId(null)}}>＋ New</button>
         </div>
       </header>
       <div className="Q-body">
         <aside className="Q-side">
-          <div className="Q-search"><input value={q} onChange={e=>setQ(e.target.value)} placeholder="Search recipes\u2026"/></div>
+          <div className="Q-search"><input value={q} onChange={e=>setQ(e.target.value)} placeholder="Search recipes…"/></div>
           <div className="Q-list">
-            {loading&&<div className="Q-msg">Loading\u2026</div>}
+            {loading&&<div className="Q-msg">Loading…</div>}
             {!loading&&!filtered.length&&<div className="Q-msg">{q?'No matches.':'No recipes yet!'}</div>}
             {filtered.map(r=>(
               <button key={r.id} className="Q-list-item" aria-selected={r.id===selId&&mode==='view'} onClick={()=>{setSelId(r.id);setMode('view')}}>
-                {r.thumbnail?<img src={r.thumbnail} className="Q-list-thumb" alt=""/>:<div className="Q-list-thumb-ph">\uD83C\uDF5E</div>}
+                {r.thumbnail?<img src={r.thumbnail} className="Q-list-thumb" alt=""/>:<div className="Q-list-thumb-ph">🍞</div>}
                 <div>
                   <h4>{r.title}</h4>
                   <span>
-                    {[r.category,r.source].filter(Boolean).join(' \u00b7 ')||'\u2014'}
-                    {r.fixed_lang&&` \u00b7 \uD83D\uDCCC${r.fixed_lang}`}
+                    {[r.category,r.source].filter(Boolean).join(' · ')||'—'}
+                    {r.fixed_lang&&` · 📌${r.fixed_lang}`}
                   </span>
                 </div>
               </button>
@@ -1582,15 +1582,15 @@ export default function App(){
         </aside>
         <main className="Q-main">
           <div className="Q-pane">
-            <button className="btn ghost xs Q-back-btn" style={{marginBottom:14}} onClick={()=>{setMode('view');setSelId(null)}}>\u2190 All recipes</button>
+            <button className="btn ghost xs Q-back-btn" style={{marginBottom:14}} onClick={()=>{setMode('view');setSelId(null)}}>← All recipes</button>
             {mode==='new'&&<RecipeEditor onSave={saveRecipe} onCancel={()=>{setMode('view');setSelId(recipes[0]?.id||null)}}/> }
             {mode==='edit'&&sel&&<RecipeEditor initial={sel} onSave={saveRecipe} onCancel={()=>setMode('view')}/>}
             {mode==='view'&&sel&&<RecipeView key={sel.id} recipe={sel} onEdit={()=>setMode('edit')} onDelete={()=>deleteRecipe(sel.id)} onUpdate={updateRecipe} allRecipes={recipes} onCopy={copyRecipe}/>}
             {mode==='view'&&!sel&&!loading&&(
               <div className="Q-hero">
-                <div className="glyph">\u2766</div>
+                <div className="glyph">❦</div>
                 <h2>Quaderno AI+D</h2>
-                <p>Professional recipe intelligence with R&D tools. Baker's percentages, sensory evaluation, version tracking, media library, and AI assistance \u2014 all in one place.</p>
+                <p>Professional recipe intelligence with R&D tools. Baker's percentages, sensory evaluation, version tracking, media library, and AI assistance — all in one place.</p>
                 <button className="btn amber" onClick={()=>setMode('new')}>Add first recipe</button>
               </div>
             )}

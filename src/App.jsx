@@ -336,18 +336,24 @@ const NUTRIENT_DB = {
   chocolate:{fat:32,water:1,sugar:48,protein:8,carbs:55,cal:546},
   oil:      {fat:100,water:0,sugar:0,protein:0,carbs:0,cal:884},
   water:    {fat:0,water:100,sugar:0,protein:0,carbs:0,cal:0},
+  egg_yolk: {fat:27,water:49,sugar:0.5,protein:16,carbs:1,cal:322},
+  molasses: {fat:0,water:22,sugar:75,protein:0,carbs:75,cal:290},
+  sourdough:{fat:1,water:44,sugar:0.5,protein:7,carbs:45,cal:220},
   default:  {fat:3,water:12,sugar:5,protein:10,carbs:60,cal:320},
 }
 function detectIngType(name){
   const s=(name||'').toLowerCase()
   if(FLOUR_W.some(k=>s.includes(k)))return 'flour'
   if(['butter','beurre','mantequilla','burro','margarine'].some(k=>s.includes(k)))return 'butter'
+  if(['tuorlo','yolk','jaune d\'oeuf','yema'].some(k=>s.includes(k)))return 'egg_yolk'
   if(['egg','uovo','huevo','oeuf'].some(k=>s.includes(k)))return 'egg'
   if(['sugar','sucre','azucar','zucchero','zucker','saccharose'].some(k=>s.includes(k)))return 'sugar'
+  if(['molasses','molasse','melassa','melaza','treacle'].some(k=>s.includes(k)))return 'molasses'
   if(['honey','miel','miele','honig'].some(k=>s.includes(k)))return 'honey'
   if(['milk','lait','leche','latte','milch'].some(k=>s.includes(k)))return 'milk'
   if(['cream','crème','crema','sahne'].some(k=>s.includes(k)))return 'cream'
   if(['salt','sel','sal','sale'].some(k=>s.includes(k)))return 'salt'
+  if(['pasta madre','lievito madre','pm solid','pm s','pms','levain','sourdough','poolish','biga','starter'].some(k=>s.includes(k)))return 'sourdough'
   if(['yeast','levure','levadura','lievito','hefe'].some(k=>s.includes(k)))return 'yeast'
   if(['chocolate','cocoa','cacao'].some(k=>s.includes(k)))return 'chocolate'
   if(['oil','aceite','huile','olio'].some(k=>s.includes(k)))return 'oil'

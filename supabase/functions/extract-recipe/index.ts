@@ -107,6 +107,30 @@ result = { text }
 } else if (body.type === "ai_suggest_notes") {
 const text = await claudeText([{ role:"user", content:`Give 3 short, practical baking notes for this recipe. Be technical and specific. Recipe: ${JSON.stringify(body.recipe)}. Existing notes: "${body.currentNotes||''}"` }], undefined, 500)
 result = { text }
+} else if (body.type === "analyze_macros") {
+const ings = (body.ingredients || []).map((i: {name:string,qty:number,unit:string}) => `${i.qty} ${i.unit} ${i.name}`).join('\n')
+const systemPrompt = `You are a professional baker and food scientist. Analyze each ingredient and return precise nutritional and baking-relevant data.
+For each ingredient return:
+- fat_pct: fat content as % of ingredient weight
+- water_pct: total water content as % of ingredient weight  
+- free_water_pct: free (unbound) water available for hydration as % (e.g. milk=88, butter=0, flour=0, sourdough starter=hydration%, yolk=20)
+- sugar_pct: sugar content as % of ingredient weight
+- protein_pct: protein content as % of ingredient weight
+- carbs_pct: total carbohydrates as %
+- cal_per100: calories per 100g
+- flour_equivalent_pct: equivalent flour content as % (flour=100, sourdough 50/50 starter=50, biga=60, poolish=50, etc, others=0)
+- ingredient_type: one of: flour, butter, egg, egg_yolk, sugar, milk, cream, salt, yeast, sourdough, honey, oil, water, chocolate, fruit, nut, spice, other
+- notes: brief technical note (max 15 words)
+
+Return ONLY valid JSON: {"cache": {"<ingredient_name>": {fat_pct, water_pct, free_water_pct, sugar_pct, protein_pct, carbs_pct, cal_per100, flour_equivalent_pct, ingredient_type, notes}, ...}}`
+result = await claudeJson([{ role:"user", content:`Recipe: ${body.recipe_title||''}\nIngredients:\n${ings}` }], systemPrompt, 2000)
+} else if (body.type === "analyze_custom_param") {
+const ings = (body.ingredients || []).map((i: {name:string,qty:number,unit:string}) => `${i.qty} ${i.unit} ${i.name}`).join('\n')
+const existingM = body.existing_macros || {}
+const systemPrompt2 = `You are a professional baker and food scientist. Calculate the requested parameter for this recipe.
+Return ONLY valid JSON: {"value": <number or string>, "unit": "<unit or empty string>", "explanation": "<1 sentence max 20 words explaining what this value means for this recipe>"}`
+const userMsg = `Recipe: ${body.recipe_title||''}\nIngredients:\n${ings}\n\nExisting macros: total_batch=${existingM.total||0}g, fat=${existingM.fat||0}g, water=${existingM.water||0}g, flour_equiv=${existingM.flourEqG||0}g, free_water=${existingM.freeWaterG||0}g\n\nCalculate: ${body.param_label}`
+result = await claudeJson([{ role:"user", content:userMsg }], systemPrompt2, 400)
 } else {
 const content = (body.images || []).map((im: {media_type:string;data:string}) => ({
 type:"image", source:{type:"base64", media_type:im.media_type, data:im.data}

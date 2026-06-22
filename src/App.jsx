@@ -808,7 +808,7 @@ function NotesPanel({recipe,onSave,onSaveMedia,onAddNote}){
           value={activeTab?.content||''}
           onChange={e=>updateContent(e.target.value)}
           placeholder={`${activeTab?.name} for ${recipe.title}\u2026\n\n\uD83C\uDF99 Mic \u2192 transcribes with smart baking term correction + timestamp\n\u2728 AI \u2192 suggestions based on this recipe`}/>
-      </>
+      </>}
       {activeSection==='media'&&<MediaLibraryPanel recipeId={recipe.id} mediaRaw={recipe.media_library||''} onSave={onSaveMedia}/>}
     </div>
   )

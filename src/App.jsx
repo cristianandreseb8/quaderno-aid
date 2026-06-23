@@ -962,7 +962,7 @@ function IngredientLibraryModal({onClose}){
   }
   function addCustomParam(){
     if(!newParamKey.trim())return
-    const key=newParamKey.trim().toLowerCase().replace(/\s+/g,'_')
+    const key=newParamKey.trim().toLowerCase().split(' ').join('_')
     setEditItem(prev=>({...prev,params:{...prev.params,[key]:0}}));setNewParamKey('')
   }
   function removeCustomParam(key){const p={...editItem.params};delete p[key];setEditItem(prev=>({...prev,params:p}))}
@@ -1233,7 +1233,7 @@ function IDPanel({recipe,onSave}){
                   {tabellaRows.map((row,i)=>(
                     <tr key={i} style={{borderBottom:'1px solid var(--border)'}}>
                       <td style={{padding:'6px 12px',color:'var(--text)'}}>{row.label}</td>
-                      {row.val1!=null?<td style={{padding:'6px 8px',color:'var(--muted)',textAlign:'right',fontWeight:600}}>{row.val1}{row.unit1}</td>:<td style={{padding:'6px 8px'}}/>}
+                      {row.val1!=null?(<td style={{padding:'6px 8px',color:'var(--muted)',textAlign:'right',fontWeight:600}}>{row.val1}{row.unit1}</td>):(<td style={{padding:'6px 8px'}}/>)}
                       <td style={{padding:'6px 12px',color:'var(--accent,#4f8ef7)',textAlign:'right',fontWeight:700}}>{row.val2}{row.unit2}</td>
                     </tr>
                   ))}

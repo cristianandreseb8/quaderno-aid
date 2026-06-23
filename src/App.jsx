@@ -893,8 +893,8 @@ function IDPanel({recipe,onSave}){
     if(!recipe.ingredients||!recipe.ingredients.length)return
     setAnalyzingMacros(true)
     try{
-      const ingList=recipe.ingredients.filter(i=>!/^##?\s+/.test(i)).map(i=>parseIng(i)).filter(p=>p.qty!=null).map(p=>({name:p.name,grams:toGrams(p.qty,p.unit)||0}))
-      const {data:_aiData,error:_aiErr}=await supabase.functions.invoke('extract-recipe',{body:{action:'analyze_macros',ingredients:ingList}});if(_aiErr)throw _aiErr
+      const ingList=recipe.ingredients.filter(i=>!/^##?\s+/.test(i)).map(i=>parseIng(i)).filter(p=>p.qty!=null).map(p=>({name:p.name,qty:Math.round(toGrams(p.qty,p.unit)||0),unit:'g'}))
+      const {data:_aiData,error:_aiErr}=await supabase.functions.invoke('extract-recipe',{body:{type:'analyze_macros',ingredients:ingList}});if(_aiErr)throw _aiErr
       const json=_aiData
       if(json.cache){
         const next={...data,macroCache:json.cache}
@@ -907,8 +907,8 @@ function IDPanel({recipe,onSave}){
     if(!newParamLabel.trim())return
     setAnalyzingCustom(true)
     try{
-      const ingList=recipe.ingredients.filter(i=>!/^##?\s+/.test(i)).map(i=>parseIng(i)).filter(p=>p.qty!=null).map(p=>({name:p.name,grams:toGrams(p.qty,p.unit)||0}))
-      const {data:_cpData,error:_cpErr}=await supabase.functions.invoke('extract-recipe',{body:{action:'analyze_custom_param',param_label:newParamLabel.trim(),ingredients:ingList,existing_macros:macros}});if(_cpErr)throw _cpErr
+      const ingList=recipe.ingredients.filter(i=>!/^##?\s+/.test(i)).map(i=>parseIng(i)).filter(p=>p.qty!=null).map(p=>({name:p.name,qty:Math.round(toGrams(p.qty,p.unit)||0),unit:'g'}))
+      const {data:_cpData,error:_cpErr}=await supabase.functions.invoke('extract-recipe',{body:{type:'analyze_custom_param',param_label:newParamLabel.trim(),ingredients:ingList,existing_macros:macros}});if(_cpErr)throw _cpErr
       const json=_cpData
       const np={id:Date.now(),label:newParamLabel.trim(),value:json.value??0,unit:json.unit||'',explanation:json.explanation||''}
       const updated=[...(data.customParams||[]),np]

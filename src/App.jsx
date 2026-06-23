@@ -345,57 +345,88 @@ const NUTRIENT_DB = {
 function detectIngType(name){
   const s=(name||'').toLowerCase()
   if(FLOUR_W.some(k=>s.includes(k)))return 'flour'
-  if(['butter','beurre','mantequilla','burro','margarine'].some(k=>s.includes(k)))return 'butter'
-  if(['tuorlo','yolk','jaune'].some(k=>s.includes(k)))return 'egg_yolk'
-  if(['egg','uovo','huevo','oeuf'].some(k=>s.includes(k)))return 'egg'
-  if(['sugar','sucre','azucar','zucchero','zucker'].some(k=>s.includes(k)))return 'sugar'
-  if(['molasses','molasse','melassa','melaza','treacle'].some(k=>s.includes(k)))return 'molasses'
-  if(['honey','miel','miele','honig'].some(k=>s.includes(k)))return 'honey'
-  if(['milk','lait','leche','latte','milch'].some(k=>s.includes(k)))return 'milk'
-  if(['cream','creme','crema','sahne'].some(k=>s.includes(k)))return 'cream'
+  if(['butter','beurre','mantequilla','burro','margarine','margarina'].some(k=>s.includes(k)))return 'butter'
+  if(['tuorlo','yolk','jaune','yema'].some(k=>s.includes(k)))return 'egg_yolk'
+  if(['egg','uovo','huevo','oeuf','uova'].some(k=>s.includes(k)))return 'egg'
+  if(['sugar','sucre','azucar','zucchero','saccharose','castor','caster'].some(k=>s.includes(k)))return 'sugar'
+  if(['milk','lait','leche','latte','buttermilk','latticello'].some(k=>s.includes(k)))return 'milk'
+  if(['cream','creme','nata','panna'].some(k=>s.includes(k)))return 'cream'
   if(['salt','sel','sal','sale'].some(k=>s.includes(k)))return 'salt'
-  if(['pasta madre','lievito madre','pms','pm s','pm solid','levain','sourdough','poolish','biga','starter','masa madre'].some(k=>s.includes(k))){
-    if(s.includes('poolish'))return 'poolish'
-    if(s.includes('biga'))return 'biga'
-    return 'sourdough'
-  }
+  if(['honey','miel','miele'].some(k=>s.includes(k)))return 'honey'
   if(['oil','olio','aceite','huile'].some(k=>s.includes(k)))return 'oil'
-  if(['water','agua','acqua','eau'].some(k=>s.includes(k)))return 'water'
-  if(['chocolate','cacao','cocoa'].some(k=>s.includes(k)))return 'chocolate'
-  if(['yeast','levure','levadura','lievito'].some(k=>s.includes(k)))return 'yeast'
-  return null
+  if(['water','agua','eau','acqua'].some(k=>s.includes(k)))return 'water'
+  if(['yeast','levure','levadura','lievito'].some(k=>s.includes(k))&&!s.includes('sourdough')&&!s.includes('madre')&&!s.includes('naturale')&&!s.includes('levain'))return 'yeast'
+  if(['sourdough','starter','madre','naturale','levain','lievito madre','pasta madre','pms','poolish','biga','lievitino'].some(k=>s.includes(k)))return 'sourdough'
+  if(['chocolate','cacao','cocoa','chocolat'].some(k=>s.includes(k)))return 'chocolate'
+  if(['malt','malto','malz'].some(k=>s.includes(k)))return 'flour'
+  return 'other'
 }
-function calcMacros(ingredients, aiCache){
-  const items=(ingredients||[]).filter(i=>!/^##?\s+/.test(i))
-  let fat=0,water=0,sugar=0,protein=0,carbs=0,cal=0,total=0,saltG=0,flourEqG=0,freeWaterG=0
-  items.forEach(ing=>{
-    const p=parseIng(ing);const g=toGrams(p.qty,p.unit)
-    if(!g)return
-    total+=g
-    const cached=aiCache&&aiCache[p.name]
-    const t=detectIngType(p.name)
-    const db=cached||NUTRIENT_DB[t]||{}
-    const fv=(db.fat_pct!=null?db.fat_pct:db.fat)||0
-    const wv=(db.water_pct!=null?db.water_pct:db.water)||0
-    const fw=(db.free_water_pct!=null?db.free_water_pct:(db.freeWater!=null?db.freeWater:wv))||0
-    const fe=(db.flour_equivalent_pct!=null?db.flour_equivalent_pct:(db.flourEq!=null?db.flourEq:0))||0
-    const sv=(db.sugar_pct!=null?db.sugar_pct:db.sugar)||0
-    const pv=(db.protein_pct!=null?db.protein_pct:db.protein)||0
-    const cv=(db.carbs_pct!=null?db.carbs_pct:db.carbs)||0
-    const kv=(db.cal_per100!=null?db.cal_per100:db.cal)||0
-    fat+=g*fv/100
-    water+=g*wv/100
-    freeWaterG+=g*fw/100
-    flourEqG+=g*fe/100
-    sugar+=g*sv/100
-    protein+=g*pv/100
-    carbs+=g*cv/100
-    cal+=g*kv/100
-    if(t==='salt')saltG+=g
-  })
-  if(!total)return null
+
+function calcMacros(ingredients,aiCache,libData){
+  if(!ingredients||!ingredients.length)return{fat:0,water:0,sugar:0,protein:0,carbs:0,cal:0,total:0,hydration:0,bakersHydration:0,fatP:0,sugarP:0,saltP:0,saltG:0,flourEqG:0,freeWaterG:0}
+  let fat=0,water=0,sugar=0,protein=0,carbs=0,cal=0,saltG=0,total=0,flourEqG=0,freeWaterG=0
+  for(const ing of ingredients){
+    const grams=parseFloat(ing.qty)||0
+    if(!grams)continue
+    total+=grams
+    const nm=(ing.name||'').toLowerCase().trim()
+    let db=null
+    if(libData&&libData.length){
+      const libMatch=libData.find(lib=>{
+        const cn=(lib.canonical_name||'').toLowerCase()
+        const nm2=(lib.name||'').toLowerCase()
+        if(nm===cn||nm===nm2)return true
+        if(nm.length>3&&(cn.includes(nm)||nm.includes(cn)))return true
+        if(nm.length>3&&(nm2.includes(nm)||nm.includes(nm2)))return true
+        const aliases=lib.aliases||[]
+        return aliases.some(a=>{const al=a.toLowerCase();return nm===al||(nm.length>3&&(al.includes(nm)||nm.includes(al)))})
+      })
+      if(libMatch&&libMatch.params&&Object.keys(libMatch.params).length>0){
+        const p=libMatch.params
+        db={
+          fat:p.fat_pct!=null?p.fat_pct:(p.fat||0),
+          water:p.water_pct!=null?p.water_pct:(p.water||0),
+          sugar:p.sugar_pct!=null?p.sugar_pct:(p.sugar||0),
+          protein:p.protein_pct!=null?p.protein_pct:(p.protein||0),
+          carbs:p.carbs_pct!=null?p.carbs_pct:(p.carbs||0),
+          cal:p.cal_per100!=null?p.cal_per100:(p.cal||0),
+          flourEq:p.flour_equivalent_pct!=null?p.flour_equivalent_pct:(p.flourEq||0),
+          freeWater:p.free_water_pct!=null?p.free_water_pct:(p.freeWater||0)
+        }
+      }
+    }
+    if(!db&&aiCache){
+      const cacheKey=Object.keys(aiCache).find(k=>nm.includes(k.toLowerCase())||k.toLowerCase().includes(nm))
+      if(cacheKey){
+        const c=aiCache[cacheKey]
+        db={
+          fat:c.fat_pct||c.fat||0,
+          water:c.water_pct||c.water||0,
+          sugar:c.sugar_pct||c.sugar||0,
+          protein:c.protein_pct||c.protein||0,
+          carbs:c.carbs_pct||c.carbs||0,
+          cal:c.cal_per100||c.cal||0,
+          flourEq:c.flour_equivalent_pct!=null?c.flour_equivalent_pct:(c.flourEq||0),
+          freeWater:c.free_water_pct!=null?c.free_water_pct:(c.freeWater||0)
+        }
+      }
+    }
+    if(!db){
+      const t=detectIngType(ing.name)
+      db=NUTRIENT_DB[t]||NUTRIENT_DB.other
+    }
+    fat+=grams*(db.fat/100)
+    water+=grams*(db.water/100)
+    sugar+=grams*(db.sugar/100)
+    protein+=grams*(db.protein/100)
+    carbs+=grams*(db.carbs/100)
+    cal+=grams*(db.cal/100)
+    saltG+=(detectIngType(ing.name)==='salt'?grams:0)
+    flourEqG+=grams*(db.flourEq/100)
+    freeWaterG+=grams*(db.freeWater/100)
+  }
+  const hydration=total>0?Math.round(water/total*1000)/10:0
   const bh=flourEqG>0?Math.round(freeWaterG/flourEqG*1000)/10:0
-  const hydration=Math.round(water/total*1000)/10
   return{
     fat:Math.round(fat*10)/10,
     water:Math.round(water*10)/10,
@@ -859,6 +890,175 @@ const SENSORY_LABELS={
   'Texture':'Mouthfeel & bite','Crumb structure':'Open, uniform, or tight crumb','Crust':'Thickness, color, crunch',
   'Flavor':'Taste balance & complexity','Aftertaste':'Persistence & pleasantness','Overall score':'Overall quality'
 }
+/* ─── Ingredient Library helpers ──────────────────────────────────────────── */
+async function libLoad(){
+  try{
+    const{data,error}=await supabase.from('ingredient_library').select('*').order('name')
+    if(error)throw error
+    return data||[]
+  }catch(e){console.error('libLoad:',e);return[]}
+}
+async function libUpsert(item){
+  try{
+    const now=new Date().toISOString()
+    if(item.id){
+      const{error}=await supabase.from('ingredient_library').update({...item,updated_at:now}).eq('id',item.id)
+      if(error)throw error
+    }else{
+      const{data,error}=await supabase.from('ingredient_library').insert({...item,updated_at:now}).select()
+      if(error)throw error
+      return data&&data[0]
+    }
+  }catch(e){console.error('libUpsert:',e)}
+}
+async function libDelete(id){
+  try{
+    const{error}=await supabase.from('ingredient_library').delete().eq('id',id)
+    if(error)throw error
+  }catch(e){console.error('libDelete:',e)}
+}
+function libFindMatch(name,libData){
+  if(!libData||!libData.length)return null
+  const nm=(name||'').toLowerCase().trim()
+  return libData.find(lib=>{
+    const cn=(lib.canonical_name||'').toLowerCase()
+    const ln=(lib.name||'').toLowerCase()
+    if(nm===cn||nm===ln)return true
+    if(nm.length>3&&(cn.includes(nm)||nm.includes(cn)))return true
+    if(nm.length>3&&(ln.includes(nm)||nm.includes(ln)))return true
+    const aliases=lib.aliases||[]
+    return aliases.some(a=>{const al=a.toLowerCase();return nm===al||(nm.length>3&&(al.includes(nm)||nm.includes(al)))})
+  })
+}
+
+/* ─── IngredientLibraryModal ───────────────────────────────────────────────── */
+function IngredientLibraryModal({onClose}){
+  const TYPES=['flour','butter','egg','egg_yolk','sugar','milk','cream','salt','yeast','sourdough','honey','oil','water','chocolate','other']
+  const STD_PARAMS=['fat_pct','water_pct','free_water_pct','sugar_pct','protein_pct','carbs_pct','cal_per100','flour_equivalent_pct']
+  const STD_LABELS={fat_pct:'Fat %',water_pct:'Water %',free_water_pct:'Free water %',sugar_pct:'Sugar %',protein_pct:'Protein %',carbs_pct:'Carbs %',cal_per100:'Cal/100g',flour_equivalent_pct:'Flour equiv %'}
+  const[items,setItems]=React.useState([])
+  const[loading,setLoading]=React.useState(true)
+  const[search,setSearch]=React.useState('')
+  const[editId,setEditId]=React.useState(null)
+  const[editItem,setEditItem]=React.useState(null)
+  const[newParamKey,setNewParamKey]=React.useState('')
+  const[typeFilter,setTypeFilter]=React.useState('')
+  useEffect(()=>{libLoad().then(d=>{setItems(d);setLoading(false)});},[])
+  const filtered=items.filter(it=>{
+    const nm=(it.name||'').toLowerCase()
+    const q=search.toLowerCase()
+    return(!q||nm.includes(q))&&(!typeFilter||it.ingredient_type===typeFilter)
+  })
+  function startEdit(item){setEditId(item.id);setEditItem({...item,params:{...item.params},aliases:[...(item.aliases||[])]})}
+  function cancelEdit(){setEditId(null);setEditItem(null)}
+  async function saveEdit(){
+    await libUpsert(editItem)
+    const fresh=await libLoad()
+    setItems(fresh);setEditId(null);setEditItem(null)
+  }
+  async function deleteItem(id){
+    if(!window.confirm('Delete this ingredient?'))return
+    await libDelete(id);setItems(items.filter(i=>i.id!==id))
+  }
+  function addCustomParam(){
+    if(!newParamKey.trim())return
+    const key=newParamKey.trim().toLowerCase().replace(/\s+/g,'_')
+    setEditItem(prev=>({...prev,params:{...prev.params,[key]:0}}));setNewParamKey('')
+  }
+  function removeCustomParam(key){const p={...editItem.params};delete p[key];setEditItem(prev=>({...prev,params:p}))}
+  return(
+    <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.7)',zIndex:1000,display:'flex',alignItems:'center',justifyContent:'center'}} onClick={e=>{if(e.target===e.currentTarget)onClose()}}>
+      <div style={{background:'var(--bg)',borderRadius:12,width:'min(900px,96vw)',maxHeight:'90vh',overflow:'hidden',display:'flex',flexDirection:'column',border:'1px solid var(--border)'}}>
+        <div style={{padding:'16px 20px',borderBottom:'1px solid var(--border)',display:'flex',alignItems:'center',gap:12}}>
+          <span style={{fontSize:20}}>📦</span>
+          <h2 style={{margin:0,fontSize:18,fontWeight:700,color:'var(--text)'}}>Ingredient Library</h2>
+          <span style={{marginLeft:'auto',fontSize:12,color:'var(--muted)'}}>AI-powered · {items.length} ingredients</span>
+          <button onClick={onClose} style={{background:'none',border:'none',fontSize:20,cursor:'pointer',color:'var(--muted)',lineHeight:1}}>&#x2715;</button>
+        </div>
+        <div style={{padding:'12px 20px',borderBottom:'1px solid var(--border)',display:'flex',gap:8,flexWrap:'wrap'}}>
+          <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search ingredients..." style={{flex:1,minWidth:160,padding:'6px 10px',borderRadius:6,border:'1px solid var(--border)',background:'var(--input-bg,var(--bg))',color:'var(--text)',fontSize:13}}/>
+          <select value={typeFilter} onChange={e=>setTypeFilter(e.target.value)} style={{padding:'6px 8px',borderRadius:6,border:'1px solid var(--border)',background:'var(--input-bg,var(--bg))',color:'var(--text)',fontSize:13}}>
+            <option value="">All types</option>
+            {TYPES.map(t=><option key={t} value={t}>{t}</option>)}
+          </select>
+        </div>
+        <div style={{flex:1,overflow:'auto',padding:'12px 20px'}}>
+          {loading&&<div style={{color:'var(--muted)',textAlign:'center',padding:32}}>Loading...</div>}
+          {!loading&&filtered.length===0&&<div style={{color:'var(--muted)',textAlign:'center',padding:32}}>No ingredients found.</div>}
+          {filtered.map(item=>(
+            <div key={item.id} style={{border:'1px solid var(--border)',borderRadius:8,marginBottom:10,overflow:'hidden'}}>
+              {editId===item.id?(
+                <div style={{padding:14,background:'var(--hover,#f8f8f8)'}}>
+                  <div style={{display:'grid',gridTemplateColumns:'1fr 1fr auto',gap:8,marginBottom:10}}>
+                    <div>
+                      <label style={{fontSize:11,color:'var(--muted)',display:'block',marginBottom:3}}>Name</label>
+                      <input value={editItem.name} onChange={e=>setEditItem(p=>({...p,name:e.target.value}))} style={{width:'100%',padding:'5px 8px',borderRadius:5,border:'1px solid var(--border)',background:'var(--bg)',color:'var(--text)',fontSize:13,boxSizing:'border-box'}}/>
+                    </div>
+                    <div>
+                      <label style={{fontSize:11,color:'var(--muted)',display:'block',marginBottom:3}}>Type</label>
+                      <select value={editItem.ingredient_type} onChange={e=>setEditItem(p=>({...p,ingredient_type:e.target.value}))} style={{width:'100%',padding:'5px 8px',borderRadius:5,border:'1px solid var(--border)',background:'var(--bg)',color:'var(--text)',fontSize:13}}>
+                        {TYPES.map(t=><option key={t} value={t}>{t}</option>)}
+                      </select>
+                    </div>
+                    <div style={{display:'flex',alignItems:'flex-end',gap:6}}>
+                      <button onClick={saveEdit} style={{padding:'5px 12px',borderRadius:5,border:'none',background:'var(--accent,#4f8ef7)',color:'#fff',cursor:'pointer',fontSize:12,fontWeight:600}}>Save</button>
+                      <button onClick={cancelEdit} style={{padding:'5px 8px',borderRadius:5,border:'1px solid var(--border)',background:'none',color:'var(--text)',cursor:'pointer',fontSize:12}}>Cancel</button>
+                    </div>
+                  </div>
+                  <div style={{marginBottom:8}}>
+                    <label style={{fontSize:11,color:'var(--muted)',display:'block',marginBottom:3}}>Aliases (comma-separated)</label>
+                    <input value={(editItem.aliases||[]).join(', ')} onChange={e=>setEditItem(p=>({...p,aliases:e.target.value.split(',').map(a=>a.trim()).filter(Boolean)}))} style={{width:'100%',padding:'5px 8px',borderRadius:5,border:'1px solid var(--border)',background:'var(--bg)',color:'var(--text)',fontSize:12,boxSizing:'border-box',marginBottom:10}}/>
+                  </div>
+                  <div style={{marginBottom:6}}>
+                    <label style={{fontSize:11,color:'var(--muted)',fontWeight:600}}>Parameters</label>
+                  </div>
+                  <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(150px,1fr))',gap:6,marginBottom:10}}>
+                    {STD_PARAMS.map(key=>(
+                      <div key={key}>
+                        <label style={{fontSize:10,color:'var(--muted)',display:'block'}}>{STD_LABELS[key]}</label>
+                        <input type="number" step="0.1" value={editItem.params[key]!=null?editItem.params[key]:''} onChange={e=>setEditItem(p=>({...p,params:{...p.params,[key]:parseFloat(e.target.value)||0}}))} style={{width:'100%',padding:'4px 6px',borderRadius:4,border:'1px solid var(--border)',background:'var(--bg)',color:'var(--text)',fontSize:12,boxSizing:'border-box'}}/>
+                      </div>
+                    ))}
+                    {Object.keys(editItem.params).filter(k=>!STD_PARAMS.includes(k)).map(key=>(
+                      <div key={key}>
+                        <label style={{fontSize:10,color:'#7c3aed',display:'block'}}>{key.replace(/_/g,' ')}</label>
+                        <div style={{display:'flex',gap:3}}>
+                          <input type="number" step="0.01" value={editItem.params[key]!=null?editItem.params[key]:''} onChange={e=>setEditItem(p=>({...p,params:{...p.params,[key]:parseFloat(e.target.value)||0}}))} style={{flex:1,padding:'4px 6px',borderRadius:4,border:'1px solid #7c3aed',background:'var(--bg)',color:'var(--text)',fontSize:12}}/>
+                          <button onClick={()=>removeCustomParam(key)} style={{padding:'0 5px',borderRadius:4,border:'none',background:'none',color:'var(--muted)',cursor:'pointer',fontSize:13}}>&#x2715;</button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <div style={{display:'flex',gap:6,alignItems:'center'}}>
+                    <input value={newParamKey} onChange={e=>setNewParamKey(e.target.value)} onKeyDown={e=>{if(e.key==='Enter'){e.preventDefault();addCustomParam()}}} placeholder="New param name..." style={{flex:1,padding:'4px 8px',borderRadius:5,border:'1px dashed var(--muted)',background:'var(--bg)',color:'var(--text)',fontSize:12}}/>
+                    <button onClick={addCustomParam} style={{padding:'4px 10px',borderRadius:5,border:'1px dashed var(--muted)',background:'none',color:'var(--muted)',cursor:'pointer',fontSize:12}}>+ Add</button>
+                  </div>
+                  {editItem.ai_notes&&<div style={{marginTop:8,fontSize:11,color:'var(--muted)',fontStyle:'italic'}}>{editItem.ai_notes}</div>}
+                </div>
+              ):(
+                <div style={{padding:'10px 14px',display:'flex',alignItems:'center',gap:10,cursor:'pointer'}} onClick={()=>startEdit(item)}>
+                  <div style={{flex:1}}>
+                    <span style={{fontWeight:600,color:'var(--text)',fontSize:14}}>{item.name}</span>
+                    {item.canonical_name!==item.name&&<span style={{fontSize:11,color:'var(--muted)',marginLeft:8}}>({item.canonical_name})</span>}
+                    <span style={{fontSize:10,background:'var(--hover,#eee)',color:'var(--muted)',borderRadius:4,padding:'1px 6px',marginLeft:8}}>{item.ingredient_type}</span>
+                    {(item.aliases||[]).length>0&&<span style={{fontSize:10,color:'var(--muted)',marginLeft:6}}>+{item.aliases.length} aliases</span>}
+                  </div>
+                  <div style={{display:'flex',gap:12,fontSize:11,color:'var(--muted)'}}>
+                    {item.params.fat_pct!=null&&<span>Fat:{item.params.fat_pct}%</span>}
+                    {item.params.flour_equivalent_pct!=null&&<span>FlEq:{item.params.flour_equivalent_pct}%</span>}
+                    {item.params.free_water_pct!=null&&<span>FrW:{item.params.free_water_pct}%</span>}
+                  </div>
+                  <button onClick={e=>{e.stopPropagation();deleteItem(item.id)}} style={{background:'none',border:'none',cursor:'pointer',color:'var(--muted)',fontSize:14,opacity:0.5}}>&#x1F5D1;</button>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function IDPanel({recipe,onSave}){
   const[data,setData]=useState(()=>parseIdData(recipe.id_data))
   const[openSections,setOpenSections]=useState({params:true,sensory:false,timeline:false,nutrition:false})
@@ -883,104 +1083,200 @@ function IDPanel({recipe,onSave}){
     setData(next);saveData(next)
   }
   function setGoal(g){const next={...data,goal:g};setData(next);saveData(next)}
-  const macros=useMemo(()=>calcMacros(recipe.ingredients,data.macroCache||null),[recipe.ingredients,data.macroCache])
+  const macros=useMemo(()=>calcMacros(recipe.ingredients,data.macroCache||null,data.libData||null),[recipe.ingredients,data.macroCache,data.libData])
   const MAX_VALS={fat:40,water:80,sugar:40,protein:20,bakersHydration:100,saltP:3}
-  const [analyzingMacros,setAnalyzingMacros]=React.useState(false)
-  const [addingParam,setAddingParam]=React.useState(false)
-  const [newParamLabel,setNewParamLabel]=React.useState('')
-  const [analyzingCustom,setAnalyzingCustom]=React.useState(false)
+  const[analyzingMacros,setAnalyzingMacros]=React.useState(false)
+  const[addingParam,setAddingParam]=React.useState(false)
+  const[newParamLabel,setNewParamLabel]=React.useState('')
+  const[analyzingCustom,setAnalyzingCustom]=React.useState(false)
+  const[showLibPanel,setShowLibPanel]=React.useState(false)
+
   async function runAIMacroAnalysis(){
     if(!recipe.ingredients||!recipe.ingredients.length)return
     setAnalyzingMacros(true)
     try{
-      const ingList=recipe.ingredients.filter(i=>!/^##?\s+/.test(i)).map(i=>parseIng(i)).filter(p=>p.qty!=null).map(p=>({name:p.name,qty:Math.round(toGrams(p.qty,p.unit)||0),unit:'g'}))
-      const {data:_aiData,error:_aiErr}=await supabase.functions.invoke('extract-recipe',{body:{type:'analyze_macros',ingredients:ingList}});if(_aiErr)throw _aiErr
-      const json=_aiData
-      if(json.cache){
-        const next={...data,macroCache:json.cache}
-        setData(next);saveData(next)
+      const libItems=await libLoad()
+      const ingsForAI=[]
+      for(const ing of recipe.ingredients){
+        const match=libFindMatch(ing.name,libItems)
+        if(!match||!match.params||Object.keys(match.params).length===0){
+          ingsForAI.push({name:ing.name,qty:parseFloat(ing.qty)||0,unit:ing.unit||'g'})
+        }
       }
-    }catch(e){console.error('AI macro analysis failed:',e)}
-    setAnalyzingMacros(false)
+      let newCache={}
+      if(ingsForAI.length>0){
+        const resp=await supabase.functions.invoke('extract-recipe',{body:{type:'analyze_macros',recipe_title:recipe.title,ingredients:ingsForAI}})
+        if(resp.error)throw resp.error
+        const json=resp.data
+        newCache=json.cache||{}
+        for(const[ingName,vals] of Object.entries(newCache)){
+          const existMatch=libFindMatch(ingName,libItems)
+          if(!existMatch){
+            await libUpsert({
+              name:ingName,
+              canonical_name:ingName,
+              ingredient_type:vals.ingredient_type||'other',
+              aliases:[],
+              params:{
+                fat_pct:vals.fat_pct||0,
+                water_pct:vals.water_pct||0,
+                free_water_pct:vals.free_water_pct||0,
+                sugar_pct:vals.sugar_pct||0,
+                protein_pct:vals.protein_pct||0,
+                carbs_pct:vals.carbs_pct||0,
+                cal_per100:vals.cal_per100||0,
+                flour_equivalent_pct:vals.flour_equivalent_pct||0
+              },
+              ai_notes:vals.notes||'',
+              source:'AI'
+            })
+          }
+        }
+      }
+      const fullLibItems=await libLoad()
+      const next={...data,macroCache:newCache,libData:fullLibItems}
+      setData(next);saveData(next)
+    }catch(e){console.error('AI macro error:',e)}
+    finally{setAnalyzingMacros(false)}
   }
+
   async function addCustomParam(){
     if(!newParamLabel.trim())return
     setAnalyzingCustom(true)
     try{
-      const ingList=recipe.ingredients.filter(i=>!/^##?\s+/.test(i)).map(i=>parseIng(i)).filter(p=>p.qty!=null).map(p=>({name:p.name,qty:Math.round(toGrams(p.qty,p.unit)||0),unit:'g'}))
-      const {data:_cpData,error:_cpErr}=await supabase.functions.invoke('extract-recipe',{body:{type:'analyze_custom_param',param_label:newParamLabel.trim(),ingredients:ingList,existing_macros:macros}});if(_cpErr)throw _cpErr
-      const json=_cpData
-      const np={id:Date.now(),label:newParamLabel.trim(),value:json.value??0,unit:json.unit||'',explanation:json.explanation||''}
-      const updated=[...(data.customParams||[]),np]
-      const next={...data,customParams:updated}
+      const resp=await supabase.functions.invoke('extract-recipe',{body:{type:'analyze_custom_param',recipe_title:recipe.title,ingredients:(recipe.ingredients||[]).map(i=>({name:i.name,qty:parseFloat(i.qty)||0,unit:i.unit||'g'})),existing_macros:macros,param_label:newParamLabel.trim()}})
+      if(resp.error)throw resp.error
+      const json=resp.data
+      const customParams=data.customParams||[]
+      const next={...data,customParams:[...customParams,{label:newParamLabel.trim(),value:json.value,unit:json.unit||'',explanation:json.explanation||''}]}
       setData(next);saveData(next)
-      setNewParamLabel('');setAddingParam(false)
-    }catch(e){console.error('Custom param failed:',e)}
-    setAnalyzingCustom(false)
+    }catch(e){console.error('addCustomParam error:',e)}
+    finally{setAnalyzingCustom(false);setAddingParam(false);setNewParamLabel('')}
   }
-  function removeCustomParam(id){
-    const updated=(data.customParams||[]).filter(p=>p.id!==id)
-    const next={...data,customParams:updated}
-    setData(next);saveData(next)
+  function removeCustomParam(idx){
+    const cp=[...(data.customParams||[])];cp.splice(idx,1)
+    const next={...data,customParams:cp};setData(next);saveData(next)
   }
-  return(
-    <div className="ID-panel">
-      {saving&&<div style={{fontFamily:'var(--mono)',fontSize:10,color:'var(--id)',marginBottom:8}}>Saving…</div>}
+
+  const tabellaRows=useMemo(()=>{
+    if(!recipe.ingredients||!recipe.ingredients.length)return[]
+    const totalG=macros.total||1
+    const flourEqG=macros.flourEqG||1
+    let eggYolkG=0,sourG=0,butterG=0,mclaButter=0
+    for(const ing of recipe.ingredients){
+      const g=parseFloat(ing.qty)||0
+      const t=detectIngType(ing.name)
+      if(t==='egg_yolk')eggYolkG+=g
+      if(t==='sourdough')sourG+=g
+      if(t==='butter'){butterG+=g;mclaButter+=g*0.03}
+    }
+    return[
+      {label:'Farina totale impasto + madre',val1:Math.round(flourEqG/totalG*1000)/10,val2:Math.round(flourEqG),unit1:'%',unit2:'g'},
+      {label:'Zuccheri totali',val1:Math.round(macros.sugar/totalG*1000)/10,val2:Math.round(macros.sugar),unit1:'%',unit2:'g'},
+      {label:'Idratazione totale impasto',val1:Math.round(macros.freeWaterG/flourEqG*1000)/10,val2:Math.round(macros.freeWaterG),unit1:'%',unit2:'g'},
+      {label:'Tuorlo totale',val1:Math.round(eggYolkG/totalG*1000)/10,val2:Math.round(eggYolkG),unit1:'%',unit2:'g'},
+      {label:'Grassi totali',val1:Math.round(macros.fat/totalG*1000)/10,val2:Math.round(macros.fat),unit1:'%',unit2:'g'},
+      {label:'Grassi MCLA da disciplinare',val1:Math.round(mclaButter/totalG*1000)/10,val2:Math.round(mclaButter),unit1:'%',unit2:'g'},
+      {label:'Burro totale',val1:null,val2:Math.round(butterG),unit1:'',unit2:'g'},
+      {label:'Pasta Madre totale',val1:null,val2:Math.round(sourG),unit1:'',unit2:'g'},
+    ]
+  },[recipe.ingredients,macros])
+
+  
       {/* ─ Parameters ─ */}
       <div className="ID-section">
         <div className="ID-section-header" onClick={()=>toggleSection('params')}>
-          <h3>📊 Macro Parameters</h3>
-          <span style={{fontSize:11,color:'var(--id)'}}>{openSections.params?'▲':'▼'}</span>
-          <span style={{fontFamily:'var(--mono)',fontSize:9,color:'var(--muted)',marginLeft:8}}>{data.macroCache?'AI-powered':'auto-calculated'}</span>
+          <h3>&#x1F4CA; Macro Parameters</h3>
+          <span className="ID-chevron">{openSections.params?'&#x25B2;':'&#x25BC;'}</span>
         </div>
         {openSections.params&&<div className="ID-section-body">
-          <div style={{display:'flex',gap:6,marginBottom:8,flexWrap:'wrap'}}>
-            <button onClick={runAIMacroAnalysis} disabled={analyzingMacros} style={{fontSize:10,padding:'2px 8px',borderRadius:4,border:'1px solid var(--id)',background:'transparent',color:'var(--id)',cursor:'pointer'}}>
-              {analyzingMacros?'Analyzing...':'\uD83E\uDD16 AI analyze'}
+          <div style={{display:'flex',gap:8,marginBottom:12,flexWrap:'wrap',alignItems:'center'}}>
+            <button onClick={runAIMacroAnalysis} disabled={analyzingMacros} style={{padding:'6px 14px',borderRadius:7,border:'none',background:'linear-gradient(135deg,#4f8ef7,#7c3aed)',color:'#fff',fontWeight:600,fontSize:13,cursor:'pointer',opacity:analyzingMacros?0.6:1}}>
+              {analyzingMacros?'Analyzing...':'&#x1F916; AI analyze'}
             </button>
-            {data.macroCache&&<span style={{fontSize:9,color:'var(--muted)',alignSelf:'center'}}>AI cache active</span>}
+            <button onClick={()=>setShowLibPanel(true)} style={{padding:'6px 12px',borderRadius:7,border:'1px solid var(--border)',background:'none',color:'var(--text)',fontSize:13,cursor:'pointer'}}>
+              &#x1F4E6; Library
+            </button>
+            {(data.macroCache||data.libData)&&<span style={{fontSize:11,color:'#7c3aed',fontWeight:500}}>&#x1F916; AI-powered{(data.libData&&data.libData.length>0)?' · Library active':''}</span>}
           </div>
-          <div className="ID-param-grid">
-            {[{k:'fat',label:'Total fat',v:macros&&macros.fatP,unit:'%',max:MAX_VALS.fat,color:'#E07B39'},
-              {k:'water',label:'Hydration (total)',v:macros&&macros.hydration,unit:'%',max:MAX_VALS.water,color:'#2196F3'},
-              {k:'bakersHydration',label:"Baker's hydration",v:macros&&macros.bakersHydration,unit:'%',max:MAX_VALS.bakersHydration,color:'#1A6B6B'},
-              {k:'sugar',label:'Total sugar',v:macros&&macros.sugarP,unit:'%',max:MAX_VALS.sugar,color:'#9C27B0'},
-              {k:'saltP',label:"Salt (baker's %)",v:macros&&macros.saltP,unit:'%',max:MAX_VALS.saltP,color:'#607D8B'},
-              {k:'protein',label:'Protein (est.)',v:macros&&macros.protein,unit:'g',max:null,color:'#2D6A4F'},
-            ].map(p=>(
-              <div className="ID-param-card" key={p.k}>
-                <div className="ID-param-label">{p.label}</div>
-                <div className="ID-param-value">{p.v}<span className="ID-param-unit">{p.unit}</span></div>
-                {p.max&&<div className="ID-param-bar"><div className="ID-param-bar-fill" style={{width:Math.min(100,(p.v||0)/p.max*100)+'%',background:p.color}}/></div>}
+
+          {[
+            {label:"Baker's Hydration",key:'bakersHydration',unit:'%',max:100,color:'#4f8ef7'},
+            {label:'Fat',key:'fat',unit:'g',max:MAX_VALS.fat,color:'#f7a24f'},
+            {label:'Sugar',key:'sugar',unit:'g',max:MAX_VALS.sugar,color:'#f74f9e'},
+            {label:'Salt',key:'saltG',unit:'g',max:5,color:'#4f4f4f'},
+            {label:'Protein',key:'protein',unit:'%',max:MAX_VALS.protein,color:'#4fb87c'},
+            {label:'Cal',key:'cal',unit:'kcal',max:5000,color:'#f7c54f'},
+          ].map(({label,key,unit,max,color})=>{
+            const val=macros[key]||0
+            const pct=Math.min(val/max*100,100)
+            return(
+              <div key={key} style={{marginBottom:8}}>
+                <div style={{display:'flex',justifyContent:'space-between',fontSize:12,marginBottom:3}}>
+                  <span style={{color:'var(--text)',fontWeight:500}}>{label}</span>
+                  <span style={{color:'var(--muted)',fontWeight:600}}>{val}{unit}</span>
+                </div>
+                <div style={{height:7,borderRadius:4,background:'var(--border)',overflow:'hidden'}}>
+                  <div style={{height:'100%',width:pct+'%',background:color,borderRadius:4,transition:'width .4s'}}/>
+                </div>
               </div>
-            ))}
-          </div>
-          {macros&&<div style={{fontSize:11,color:'var(--muted)',marginTop:6,lineHeight:1.5}}>
-            Total batch: <strong>{macros.total}g</strong> · Fat: <strong>{macros.fat}g</strong> · Water: <strong>{macros.water}g</strong> · Sugar: <strong>{macros.sugar}g</strong> · Salt: <strong>{macros.saltG}g</strong>
-            {data.macroCache&&<span style={{display:'block',marginTop:3}}>Flour equiv: <strong>{macros.flourEqG}g</strong> · Free water: <strong>{macros.freeWaterG}g</strong></span>}
-          </div>}
-          {(data.customParams||[]).map(cp=>(
-            <div key={cp.id} style={{marginTop:8,padding:'6px 10px',border:'1px solid #b45309',borderRadius:6,background:'rgba(180,83,9,0.05)'}}>
-              <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-                <span style={{fontWeight:600,fontSize:12}}>{cp.label}: <strong>{cp.value}</strong>{cp.unit&&<span style={{marginLeft:3,fontSize:10}}>{cp.unit}</span>}</span>
-                <button onClick={()=>removeCustomParam(cp.id)} style={{fontSize:10,background:'transparent',border:'none',cursor:'pointer',color:'var(--muted)'}}>&#x2715;</button>
+            )
+          })}
+
+          {macros.total>0&&(
+            <div style={{marginTop:16,border:'1px solid var(--border)',borderRadius:8,overflow:'hidden'}}>
+              <div style={{background:'var(--hover,#f5f5f5)',padding:'8px 12px',borderBottom:'1px solid var(--border)'}}>
+                <span style={{fontSize:12,fontWeight:700,color:'var(--text)',letterSpacing:.5}}>Tabella riassuntiva valori impasto</span>
               </div>
-              {cp.explanation&&<div style={{fontSize:10,color:'var(--muted)',marginTop:2}}>{cp.explanation}</div>}
+              <table style={{width:'100%',borderCollapse:'collapse',fontSize:12}}>
+                <tbody>
+                  {tabellaRows.map((row,i)=>(
+                    <tr key={i} style={{borderBottom:'1px solid var(--border)'}}>
+                      <td style={{padding:'6px 12px',color:'var(--text)'}}>{row.label}</td>
+                      {row.val1!=null?<td style={{padding:'6px 8px',color:'var(--muted)',textAlign:'right',fontWeight:600}}>{row.val1}{row.unit1}</td>:<td style={{padding:'6px 8px'}}/>}
+                      <td style={{padding:'6px 12px',color:'var(--accent,#4f8ef7)',textAlign:'right',fontWeight:700}}>{row.val2}{row.unit2}</td>
+                    </tr>
+                  ))}
+                  <tr style={{background:'var(--hover,#f5f5f5)'}}>
+                    <td style={{padding:'6px 12px',color:'var(--text)',fontWeight:600}}>Peso totale impasto</td>
+                    <td/>
+                    <td style={{padding:'6px 12px',color:'var(--accent,#4f8ef7)',textAlign:'right',fontWeight:700}}>{macros.total} g</td>
+                  </tr>
+                </tbody>
+              </table>
+              {macros.flourEqG>0&&<div style={{padding:'6px 12px',fontSize:11,color:'var(--muted)',borderTop:'1px solid var(--border)'}}>
+                Equiv farina: <b>{macros.flourEqG}g</b> · Acqua libera: <b>{macros.freeWaterG}g</b> · Idr. panettiere: <b>{macros.bakersHydration}%</b>
+              </div>}
+            </div>
+          )}
+
+          {(data.customParams||[]).map((cp,i)=>(
+            <div key={i} style={{marginTop:10,padding:'10px 14px',borderRadius:8,border:'1px solid var(--border)',background:'var(--hover,#f8f8f8)'}}>
+              <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start'}}>
+                <div>
+                  <div style={{fontWeight:600,fontSize:13,color:'var(--text)'}}>{cp.label}</div>
+                  <div style={{fontSize:18,fontWeight:700,color:'var(--accent,#4f8ef7)',marginTop:2}}>{cp.value}{cp.unit?' '+cp.unit:''}</div>
+                  {cp.explanation&&<div style={{fontSize:11,color:'var(--muted)',marginTop:4,fontStyle:'italic'}}>{cp.explanation}</div>}
+                </div>
+                <button onClick={()=>removeCustomParam(i)} style={{background:'none',border:'none',cursor:'pointer',color:'var(--muted)',fontSize:16,opacity:0.5,padding:4}}>&#x2715;</button>
+              </div>
             </div>
           ))}
-          <div style={{marginTop:8}}>
-            {addingParam?(
-              <div style={{display:'flex',gap:6,alignItems:'center'}}>
-                <input value={newParamLabel} onChange={e=>setNewParamLabel(e.target.value)} placeholder="Parameter name..." style={{flex:1,fontSize:11,padding:'3px 6px',borderRadius:4,border:'1px solid var(--border)'}} onKeyDown={e=>{if(e.key==='Enter')addCustomParam();if(e.key==='Escape')setAddingParam(false)}}/>
-                <button onClick={addCustomParam} disabled={analyzingCustom} style={{fontSize:10,padding:'3px 8px',borderRadius:4,border:'1px solid var(--id)',background:'transparent',color:'var(--id)',cursor:'pointer'}}>{analyzingCustom?'...':'\u2713'}</button>
-                <button onClick={()=>setAddingParam(false)} style={{fontSize:10,padding:'3px 8px',borderRadius:4,border:'none',background:'transparent',color:'var(--muted)',cursor:'pointer'}}>&#x2715;</button>
-              </div>
-            ):(
-              <button onClick={()=>setAddingParam(true)} style={{fontSize:10,padding:'2px 8px',borderRadius:4,border:'1px dashed var(--muted)',background:'transparent',color:'var(--muted)',cursor:'pointer'}}>&#x271A; Add parameter</button>
-            )}
-          </div>
+
+          {addingParam?(
+            <div style={{display:'flex',gap:6,marginTop:10,alignItems:'center'}}>
+              <input autoFocus value={newParamLabel} onChange={e=>setNewParamLabel(e.target.value)} onKeyDown={e=>{if(e.key==='Enter'){e.preventDefault();addCustomParam()}if(e.key==='Escape'){setAddingParam(false);setNewParamLabel('')}}} placeholder="e.g. Gluten development index..." style={{flex:1,padding:'6px 10px',borderRadius:6,border:'1px solid var(--border)',background:'var(--bg)',color:'var(--text)',fontSize:13}}/>
+              <button onClick={addCustomParam} disabled={analyzingCustom} style={{padding:'6px 14px',borderRadius:6,border:'none',background:'var(--accent,#4f8ef7)',color:'#fff',cursor:'pointer',fontSize:13,fontWeight:600,opacity:analyzingCustom?0.6:1}}>{analyzingCustom?'..':'Analyze'}</button>
+              <button onClick={()=>{setAddingParam(false);setNewParamLabel('')}} style={{padding:'6px 10px',borderRadius:6,border:'1px solid var(--border)',background:'none',color:'var(--text)',cursor:'pointer',fontSize:13}}>Cancel</button>
+            </div>
+          ):(
+            <button onClick={()=>setAddingParam(true)} style={{marginTop:10,padding:'5px 12px',borderRadius:6,border:'1px dashed var(--muted)',background:'transparent',color:'var(--muted)',cursor:'pointer',fontSize:12}}>&#x271A; Add parameter</button>
+          )}
+
+          {showLibPanel&&<IngredientLibraryModal onClose={()=>setShowLibPanel(false)}/>}
         </div>}
       </div>
+      
       {/* ─ Sensory ─ */}
       <div className="ID-section">
         <div className="ID-section-header" onClick={()=>toggleSection('sensory')}>
@@ -1594,6 +1890,7 @@ export default function App(){
   const[saveErr,setSaveErr]=useState('')
   const[showAppAI,setShowAppAI]=useState(false)
   const[showCompare,setShowCompare]=useState(false)
+  const[showLibrary,setShowLibrary]=React.useState(false)
   useEffect(()=>{dbLoad().then(data=>{setRecipes(data);if(data[0])setSelId(data[0].id)}).catch(e=>setSaveErr('Load failed: '+e.message)).finally(()=>setLoading(false))},[])
   async function saveRecipe(rec){
     try{
@@ -1654,6 +1951,7 @@ export default function App(){
           {saveErr&&<span style={{color:'#9b2c2c',fontSize:10,maxWidth:160,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{saveErr}</span>}
           <span style={{fontFamily:'var(--mono)',fontSize:10,color:'var(--muted)'}}>{!loading&&`${recipes.length} recipe${recipes.length!==1?'s':''}`}</span>
           <button className="btn id xs" onClick={()=>setShowCompare(true)} title="Compare recipes">⚖ Compare</button>
+          <button className="btn id xs" onClick={()=>setShowLibrary(true)} title="Ingredient Library">&#x1F4E6; Library</button>
           <button className="btn ai xs" onClick={()=>setShowAppAI(true)} title="App AI Assistant">🌐 AI</button>
           <button className="btn amber" onClick={()=>{setMode('new');setSelId(null)}}>＋ New</button>
         </div>
@@ -1703,6 +2001,7 @@ export default function App(){
         </div>
       )}
       {showCompare&&<ComparePanel recipes={recipes} onClose={()=>setShowCompare(false)}/>}
+      {showLibrary&&<IngredientLibraryModal onClose={()=>setShowLibrary(false)}/>}
     </div>
   )
 }

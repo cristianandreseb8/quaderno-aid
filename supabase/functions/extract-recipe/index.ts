@@ -19,8 +19,8 @@ const data = await res.json()
 return (data.content || []).filter((b: {type:string}) => b.type === "text").map((b: {text:string}) => b.text).join("\n")
 }
 
-async function claudeJson(messages: object[]) {
-const text = await claudeText(messages, undefined, 2000)
+async function claudeJson(messages: object[], system?: string, maxTokens = 2000) {
+const text = await claudeText(messages, system, maxTokens)
 let t = text.trim().replace(/^```json\s*/i,"").replace(/^```\s*/,"").replace(/\s*```$/,"").trim()
 const a = t.indexOf("{"), b = t.lastIndexOf("}")
 if (a >= 0 && b > a) t = t.slice(a, b + 1)

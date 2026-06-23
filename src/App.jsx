@@ -959,12 +959,11 @@ function IDPanel({recipe,onSave}){
             Total batch: <strong>{macros.total}g</strong> · Fat: <strong>{macros.fat}g</strong> · Water: <strong>{macros.water}g</strong> · Sugar: <strong>{macros.sugar}g</strong> · Salt: <strong>{macros.saltG}g</strong>
             {data.macroCache&&<span style={{display:'block',marginTop:3}}>Flour equiv: <strong>{macros.flourEqG}g</strong> · Free water: <strong>{macros.freeWaterG}g</strong></span>}
           </div>}
-          {/* Custom params */}
           {(data.customParams||[]).map(cp=>(
             <div key={cp.id} style={{marginTop:8,padding:'6px 10px',border:'1px solid #b45309',borderRadius:6,background:'rgba(180,83,9,0.05)'}}>
               <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
                 <span style={{fontWeight:600,fontSize:12}}>{cp.label}: <strong>{cp.value}</strong>{cp.unit&&<span style={{marginLeft:3,fontSize:10}}>{cp.unit}</span>}</span>
-                <button onClick={()=>removeCustomParam(cp.id)} style={{fontSize:10,background:'transparent',border:'none',cursor:'pointer',color:'var(--muted)'}}>✕</button>
+                <button onClick={()=>removeCustomParam(cp.id)} style={{fontSize:10,background:'transparent',border:'none',cursor:'pointer',color:'var(--muted)'}}>&#x2715;</button>
               </div>
               {cp.explanation&&<div style={{fontSize:10,color:'var(--muted)',marginTop:2}}>{cp.explanation}</div>}
             </div>
@@ -973,16 +972,16 @@ function IDPanel({recipe,onSave}){
             {addingParam?(
               <div style={{display:'flex',gap:6,alignItems:'center'}}>
                 <input value={newParamLabel} onChange={e=>setNewParamLabel(e.target.value)} placeholder="Parameter name..." style={{flex:1,fontSize:11,padding:'3px 6px',borderRadius:4,border:'1px solid var(--border)'}} onKeyDown={e=>{if(e.key==='Enter')addCustomParam();if(e.key==='Escape')setAddingParam(false)}}/>
-                <button onClick={addCustomParam} disabled={analyzingCustom} style={{fontSize:10,padding:'3px 8px',borderRadius:4,border:'1px solid var(--id)',background:'transparent',color:'var(--id)',cursor:'pointer'}}>{analyzingCustom?'...':'✓'}</button>
-                <button onClick={()=>setAddingParam(false)} style={{fontSize:10,padding:'3px 8px',borderRadius:4,border:'none',background:'transparent',color:'var(--muted)',cursor:'pointer'}}>✕</button>
+                <button onClick={addCustomParam} disabled={analyzingCustom} style={{fontSize:10,padding:'3px 8px',borderRadius:4,border:'1px solid var(--id)',background:'transparent',color:'var(--id)',cursor:'pointer'}}>{analyzingCustom?'...':'\u2713'}</button>
+                <button onClick={()=>setAddingParam(false)} style={{fontSize:10,padding:'3px 8px',borderRadius:4,border:'none',background:'transparent',color:'var(--muted)',cursor:'pointer'}}>&#x2715;</button>
               </div>
             ):(
-              <button onClick={()=>setAddingParam(true)} style={{fontSize:10,padding:'2px 8px',borderRadius:4,border:'1px dashed var(--muted)',background:'transparent',color:'var(--muted)',cursor:'pointer'}}>✚ Add parameter</button>
+              <button onClick={()=>setAddingParam(true)} style={{fontSize:10,padding:'2px 8px',borderRadius:4,border:'1px dashed var(--muted)',background:'transparent',color:'var(--muted)',cursor:'pointer'}}>&#x271A; Add parameter</button>
             )}
           </div>
         </div>}
       </div>
-      /* ─ Sensory ─ */}
+      {/* ─ Sensory ─ */}
       <div className="ID-section">
         <div className="ID-section-header" onClick={()=>toggleSection('sensory')}>
           <h3>👅 Sensory Evaluation</h3>

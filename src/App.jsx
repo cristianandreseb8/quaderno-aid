@@ -1,18 +1,18 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import { supabase } from './lib/supabase.js'
 import jsPDF from 'jspdf'
-import * as XLSX from 'xlsx'
+import * as XLSX from 'xls
 
 /* ═══════════════════════════════════════════════════════════════
    QUADERNO AI+D  v1.0
    Base: Quaderno AI v2 (all features preserved)
-   New:
+   New
    · Fix: thumbnail preserved in PDF/Image after translation
    · Copy recipe → fixed language version
    · Módulo I+D (pestaña separada por receta):
        - Ficha de parámetros (grasas, agua, azúcar, sal, hidratación…)
        - Fichas de percepción sensorial + sistema de puntaje
-       - Timeline de versiones (evolución hacia resultado final)
+       - Timeline de versiones (eolución hacia resultado final)
        - Comparativa entre recetas
        - Tabla nutricional básica
    · Biblioteca de medios por receta y en notas (fotos, audio ≤2 min, video ≤3 min)
@@ -231,8 +231,9 @@ const CSS = `
 .ID-section{background:#fff;border:1px solid var(--rule);border-radius:10px;margin-bottom:14px;overflow:hidden}
 .ID-section-header{display:flex;align-items:center;gap:8px;padding:11px 14px;border-bottom:1px solid var(--rule);background:#F0F4F8;cursor:pointer;user-select:none}
 .ID-section-header h3{font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.18em;color:var(--id);margin:0;flex:1}
-.ID-section-body{padding:14px}
-.ID-param-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;margin-bottom:8px}
+.ID-section-body{padding:14px;overflow:hidden}
+.ID-param-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(148px,1fr));gap:8px;margin-bottom:8px;align-items:start}
+.ID-param-card{background:#F8FBFF;border:1px solid #C8DFF0;border-radius:7px;padding:9px 11px;min-width:0;word-break:break-word}
 .ID-param-card{background:#F8FBFF;border:1px solid #C8DFF0;border-radius:7px;padding:10px 12px}
 .ID-param-label{font-family:var(--mono);font-size:8.5px;text-transform:uppercase;letter-spacing:.14em;color:var(--id);margin-bottom:4px}
 .ID-param-value{font-family:var(--mono);font-size:18px;font-weight:700;color:var(--navy)}
@@ -314,7 +315,7 @@ const FLOUR_W=['flour','farina','harina','mehl','farine','semolina','semola','ma
 function isFlour(n){const s=(n||'').toLowerCase();return FLOUR_W.some(k=>s.includes(k))}
 function fmtQty(q){if(q>=100)return String(Math.round(q));if(q>=10)return(Math.round(q*10)/10).toFixed(1);return(Math.round(q*100)/100).toFixed(q<1?2:1)}
 function parseSections(ingredients){const ings=ingredients||[];const sections=[];let cur={name:null,items:[],rawIndices:[]};ings.forEach((ing,i)=>{if(/^##?\s+/.test(ing)){if(cur.items.length||cur.name!==null)sections.push(cur);cur={name:ing.replace(/^##?\s*/,'').trim(),items:[],rawIndices:[]}}else{cur.items.push(ing);cur.rawIndices.push(i)}});if(cur.items.length||cur.name!==null)sections.push(cur);if(!sections.length)return[{name:null,items:ings,rawIndices:ings.map((_,i)=>i)}];return sections}
-function calcPct(items,mode,base){const parsed=items.map(i=>{const p=parseIng(i);return{...p,grams:toGrams(p.qty,p.unit)}});let bg=0;if(mode==='baker')bg=parsed.filter(p=>isFlour(p.name)).reduce((s,p)=>s+p.grams,0);else if(mode==='mass')bg=parsed.reduce((s,p)=>s+p.grams,0);else if(mode==='custom'&&base){const b=parsed.find(p=>p.name.toLowerCase().includes(base.toLowerCase()));bg=b?b.grams:0};return parsed.map(p=>({...p,pct:bg>0&&p.grams>0?p.grams/bg*100:null,isBase:mode==='custom'&&base&&p.name.toLowerCase().includes(base.toLowerCase())}))}
+function calcPct(items,mode,base,baseGramsOverride=null){const parsed=items.map(i=>{const p=parseIng(i);return{...p,grams:toGrams(p.qty,p.unit)}});let bg=0;if(mode==='baker')bg=parsed.filter(p=>isFlour(p.name)).reduce((s,p)=>s+p.grams,0);else if(mode==='mass')bg=parsed.reduce((s,p)=>s+p.grams,0);else if(mode==='custom'&&base){if(baseGramsOverride){bg=baseGramsOverride}else{const b=parsed.find(p=>p.name.toLowerCase().includes(base.toLowerCase()));bg=b?b.grams:0}};return parsed.map(p=>({...p,pct:bg>0&&p.grams>0?p.grams/bg*100:null,isBase:mode==='custom'&&base&&p.name.toLowerCase().includes(base.toLowerCase())}))}
 function getTotalGrams(ingredients){return(ingredients||[]).reduce((s,ing)=>{if(/^##?\s+/.test(ing))return s;const p=parseIng(ing);return s+toGrams(p.qty,p.unit)},0)}
 function scaleRecipe(recipe,factor){return{...recipe,ingredients:(recipe.ingredients||[]).map(ing=>{if(/^##?\s+/.test(ing))return ing;const p=parseIng(ing);if(p.qty===null)return ing;return `${fmtQty(p.qty*factor)}${p.unit?' '+p.unit:''}  ${p.name}`})}}
 function findStepsForIng(name,steps){const words=name.toLowerCase().split(/\s+/).filter(w=>w.length>3);if(!words.length)return new Set();const r=new Set();(steps||[]).forEach((s,i)=>{if(words.some(w=>s.toLowerCase().includes(w)))r.add(i)});return r}
@@ -508,19 +509,30 @@ function correctBakingTerms(text){
   })
   return r
 }
+const VOICE_LANGS=[
+  {code:'es-ES',label:'Español'},
+  {code:'en-US',label:'English'},
+  {code:'de-DE',label:'Deutsch'},
+  {code:'ru-RU',label:'Русский'},
+  {code:'fr-FR',label:'Français'},
+  {code:'it-IT',label:'Italiano'},
+]
+
 function useVoiceInput(onTranscript,smartCorrect=true){
   const[recording,setRecording]=useState(false)
+  const[lang,setLang]=useState(()=>localStorage.getItem('qdaid_voice_lang')||'es-ES')
   const ref=useRef(null);const acc=useRef('')
+  function saveLang(l){setLang(l);localStorage.setItem('qdaid_voice_lang',l)}
   function start(){
     const SR=window.SpeechRecognition||window.webkitSpeechRecognition
-    if(!SR){alert('Voice input requires Chrome on desktop.');return}
-    const r=new SR();r.lang=navigator.language||'en-US';r.continuous=true;r.interimResults=false
+    if(!SR){alert('Voice input requires Chrome.');return}
+    const r=new SR();r.lang=lang;r.continuous=true;r.interimResults=false
     r.onresult=e=>{const t=Array.from(e.results).slice(e.resultIndex).filter(x=>x.isFinal).map(x=>x[0].transcript).join(' ');if(t)acc.current+=(acc.current?' ':'')+t}
     r.onend=()=>{setRecording(false);if(acc.current.trim()){const final=smartCorrect?correctBakingTerms(acc.current.trim()):acc.current.trim();onTranscript(final);acc.current=''}};r.onerror=()=>setRecording(false)
     r.start();ref.current=r;acc.current='';setRecording(true)
   }
   function stop(){ref.current?.stop()}
-  return{recording,start,stop}
+  return{recording,start,stop,lang,setLang:saveLang,VOICE_LANGS}
 }
 
 /* ── Image Compression ──────────────────────────────────────────────────────────── */
@@ -867,7 +879,10 @@ function NotesPanel({recipe,onSave,onSaveMedia,onAddNote}){
             {saving&&<span style={{fontSize:10,color:'var(--muted)',fontFamily:'var(--mono)'}}>saving…</span>}
             {voice.recording&&<span className="Q-recording-pill">🔴 Recording…</span>}
             {tabs.length>1&&<button className="btn danger xs" onClick={()=>removeTab(activeIdx)}>Remove tab</button>}
-            <button className={`Q-voice-btn${voice.recording?' recording':''}`} onClick={voice.recording?voice.stop:voice.start} title="Voice note">{voice.recording?'⏹':'🎙'}</button>
+            <select value={voice.lang} onChange={e=>voice.setLang(e.target.value)} style={{border:'1px solid var(--rule)',borderRadius:5,padding:'2px 5px',fontSize:10,fontFamily:'var(--mono)',background:'#fff',color:'var(--ink)'}}>
+  {voice.VOICE_LANGS.map(l=><option key={l.code} value={l.code}>{l.label}</option>)}
+</select>
+<button className={`Q-voice-btn${voice.recording?' recording':''}`} onClick={voice.recording?voice.stop:voice.start} title="Voice note">{voice.recording?'⏹':'🎙'}</button>
             <button className="btn xs ai" onClick={aiSuggest} disabled={aiLoading}>{aiLoading?'…':'✨ AI'}</button>
           </div>
         </div>
@@ -1061,11 +1076,13 @@ function IngredientLibraryModal({onClose}){
 
 function IDPanel({recipe,onSave}){
   const[data,setData]=useState(()=>parseIdData(recipe.id_data))
+  const[customAttrs,setCustomAttrs]=useState(()=>data.customSensoryAttrs||[])
+  const[newAttrName,setNewAttrName]=useState('')
   const[openSections,setOpenSections]=useState({params:true,sensory:false,timeline:false,nutrition:false})
   const[newVersion,setNewVersion]=useState({title:'',notes:'',isGoal:false})
   const[addingVersion,setAddingVersion]=useState(false)
   const[saving,setSaving]=useState(false)
-  useEffect(()=>{setData(parseIdData(recipe.id_data))},[recipe.id])
+  useEffect(()=>{const d=parseIdData(recipe.id_data);setData(d);setCustomAttrs(d.customSensoryAttrs||[])},[recipe.id])
   async function saveData(d){setSaving(true);try{await onSave(serializeIdData(d))}finally{setSaving(false)}}
   function toggleSection(k){setOpenSections(p=>({...p,[k]:!p[k]}))}
   function setSensory(attr,field,val){
@@ -1304,6 +1321,52 @@ function IDPanel({recipe,onSave}){
               )
             })}
           </div>
+        <div style={{marginTop:14,borderTop:'1px solid var(--rule)',paddingTop:12}}>
+  <div style={{fontFamily:'var(--mono)',fontSize:9.5,textTransform:'uppercase',letterSpacing:'.14em',color:'var(--id)',marginBottom:8}}>Custom attributes</div>
+  <div className="ID-sensory-grid">
+    {customAttrs.map(attr=>{
+      const val=data.sensory?.[attr]||{}
+      return(
+        <div className="ID-sensory-item" key={attr} style={{position:'relative'}}>
+          <button onClick={()=>{
+            const next2=customAttrs.filter(a=>a!==attr)
+            setCustomAttrs(next2)
+            const nd={...data,customSensoryAttrs:next2}
+            setData(nd);saveData(nd)
+          }} style={{position:'absolute',top:4,right:4,background:'none',border:'none',cursor:'pointer',fontSize:11,color:'var(--muted)'}}>×</button>
+          <div className="ID-sensory-label">{attr}</div>
+          <div className="ID-star-row">
+            {[1,2,3,4,5].map(n=>(
+              <span key={n} className="ID-star" onClick={()=>setSensory(attr,'score',n)} style={{opacity:val.score>=n?1:.25}}>★</span>
+            ))}
+            {val.score&&<span style={{fontFamily:'var(--mono)',fontSize:10,color:'var(--id)',marginLeft:4}}>{val.score}/5</span>}
+          </div>
+          <textarea className="ID-sensory-note" rows={2} value={val.note||''} onChange={e=>setSensory(attr,'note',e.target.value)} placeholder="Notes…"/>
+        </div>
+      )
+    })}
+  </div>
+  <div style={{display:'flex',gap:7,marginTop:10,alignItems:'center'}}>
+    <input value={newAttrName} onChange={e=>setNewAttrName(e.target.value)}
+      placeholder="New attribute name…"
+      style={{flex:1,border:'1px solid var(--rule)',borderRadius:5,padding:'5px 8px',fontSize:12,fontFamily:'var(--sans)'}}
+      onKeyDown={e=>{if(e.key==='Enter'&&newAttrName.trim()){
+        const next2=[...customAttrs,newAttrName.trim()]
+        setCustomAttrs(next2)
+        const nd={...data,customSensoryAttrs:next2}
+        setData(nd);saveData(nd);setNewAttrName('')
+      }}}
+    />
+    <button className="btn id xs" onClick={()=>{
+      if(!newAttrName.trim())return
+      const next2=[...customAttrs,newAttrName.trim()]
+      setCustomAttrs(next2)
+      const nd={...data,customSensoryAttrs:next2}
+      setData(nd);saveData(nd);setNewAttrName('')
+    }}>＋ Add</button>
+  </div>
+</div>
+
         </div>}
       </div>
       {/* ─ Timeline ─ */}
@@ -1543,7 +1606,10 @@ function AIAssistant({recipe,onAction,onRequestSaveNote}){
           placeholder="Ask or instruct… (Enter to send, Shift+Enter for newline)"
           onKeyDown={e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send()}}}/>
         <div style={{display:'flex',flexDirection:'column',gap:5}}>
-          <button className={`Q-voice-btn${voice.recording?' recording':''}`} onClick={voice.recording?voice.stop:voice.start}>{voice.recording?'⏹':'🎙'}</button>
+          <select value={voice.lang} onChange={e=>voice.setLang(e.target.value)} style={{border:'1px solid var(--rule)',borderRadius:5,padding:'2px 5px',fontSize:10,fontFamily:'var(--mono)',background:'#fff',color:'var(--ink)'}}>
+  {voice.VOICE_LANGS.map(l=><option key={l.code} value={l.code}>{l.label}</option>)}
+</select>
+<button className={`Q-voice-btn${voice.recording?' recording':''}`} onClick={voice.recording?voice.stop:voice.start}>{voice.recording?'⏹':'🎙'}</button>
           <button className="btn ai xs" onClick={send} disabled={loading||!input.trim()}>↑</button>
         </div>
       </div>
@@ -1608,7 +1674,10 @@ function AppAIChat({recipes,onAction,onClose}){
           placeholder="Ask anything… (Enter to send)"
           onKeyDown={e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send()}}}/>
         <div style={{display:'flex',flexDirection:'column',gap:5}}>
-          <button className={`Q-voice-btn${voice.recording?' recording':''}`} onClick={voice.recording?voice.stop:voice.start}>{voice.recording?'⏹':'🎙'}</button>
+          <select value={voice.lang} onChange={e=>voice.setLang(e.target.value)} style={{border:'1px solid var(--rule)',borderRadius:5,padding:'2px 5px',fontSize:10,fontFamily:'var(--mono)',background:'#fff',color:'var(--ink)'}}>
+  {voice.VOICE_LANGS.map(l=><option key={l.code} value={l.code}>{l.label}</option>)}
+</select>
+<button className={`Q-voice-btn${voice.recording?' recording':''}`} onClick={voice.recording?voice.stop:voice.start}>{voice.recording?'⏹':'🎙'}</button>
           <button className="btn ai xs" onClick={send} disabled={loading||!input.trim()}>↑</button>
         </div>
       </div>
@@ -1624,6 +1693,7 @@ function RecipeView({recipe,onEdit,onDelete,onUpdate,allRecipes,onCopy}){
   const[checked,setChecked]=useState(new Set())
   const[highlightedSteps,setHighlightedSteps]=useState(new Set())
   const[showPct,setShowPct]=useState(false)
+const[customBaseGrams,setCustomBaseGrams]=useState('')
   const[pctMode,setPctMode]=useState('baker')
   const[pctBase,setPctBase]=useState('')
   const[showScale,setShowScale]=useState(false)
@@ -1644,6 +1714,7 @@ function RecipeView({recipe,onEdit,onDelete,onUpdate,allRecipes,onCopy}){
   useEffect(()=>{
     setChecked(new Set());setHighlightedSteps(new Set());setAppliedScale(null);setTranslated(null)
     setShowScale(false);setTab('recipe');setShowCopyLangMenu(false)
+    setCustomBaseGrams('')
     // If this recipe has a fixed language, show banner
   },[recipe.id])
   const displayR=translated||recipe
@@ -1724,7 +1795,7 @@ function RecipeView({recipe,onEdit,onDelete,onUpdate,allRecipes,onCopy}){
           )}
         </div>
       </div>
-      {showScale&&!appliedScale&&(
+      {showScale&&(
         <div className="Q-scale-panel">
           <h4>Scale recipe</h4>
           <div style={{display:'flex',flexWrap:'wrap',gap:8,marginBottom:10}}>
@@ -1733,17 +1804,48 @@ function RecipeView({recipe,onEdit,onDelete,onUpdate,allRecipes,onCopy}){
             ))}
           </div>
           {scaleMode==='factor'&&<div className="Q-scale-row"><label>Factor</label><input type="number" value={scaleFactor} onChange={e=>setScaleFactor(e.target.value)} placeholder="2" min=".01" step=".1"/><span style={{fontSize:11,color:'var(--muted)'}}>× all quantities</span></div>}
-          {scaleMode==='pieces'&&<div className="Q-scale-row"><label>Pieces</label><input type="number" value={scalePieces} onChange={e=>setScalePieces(e.target.value)} placeholder="6"/><span style={{fontSize:11,color:'var(--muted)'}}>×</span><input type="number" value={scaleGpp} onChange={e=>setScaleGpp(e.target.value)} placeholder="1000"/><label>g/piece</label></div>}
+          {scaleMode==='pieces'&&<div className="Q-scale-row"><label>Piezas</label><input type="number" value={scalePieces} onChange={e=>setScalePieces(e.target.value)} placeholder="100"/><span style={{fontSize:11,color:'var(--muted)'}}>×</span><input type="number" value={scaleGpp} onChange={e=>setScaleGpp(e.target.value)} placeholder="50"/><label>g/pieza</label>{scalePieces&&scaleGpp&&<span style={{fontFamily:'var(--mono)',fontSize:12,color:'var(--navy)',fontWeight:700}}>= {(parseFloat(scalePieces)*parseFloat(scaleGpp)).toFixed(0)} g total</span>}</div>}
           {scaleMode==='total'&&<div className="Q-scale-row"><label>Total</label><input type="number" value={scaleTotal} onChange={e=>setScaleTotal(e.target.value)} placeholder="2000"/><span style={{fontSize:11,color:'var(--muted)'}}>g · current: {getTotalGrams(recipe.ingredients||[]).toFixed(0)}g</span></div>}
           <div style={{display:'flex',gap:7}}><button className="btn amber xs" onClick={applyScale}>Apply</button><button className="btn ghost xs" onClick={()=>setShowScale(false)}>Cancel</button></div>
         </div>
       )}
-      {showPct&&<div className="Q-pct-bar"><label>% Basis:</label><select value={pctMode} onChange={e=>setPctMode(e.target.value)}><option value="baker">Baker's % (flour=100%)</option><option value="mass">Total mass %</option><option value="custom">Custom base</option></select>{pctMode==='custom'&&<select value={pctBase} onChange={e=>setPctBase(e.target.value)}><option value="">— select —</option>{pctBaseOpts.map(n=><option key={n}>{n}</option>)}</select>}</div>}
+      {showPct&&(
+  <div className="Q-pct-bar">
+    <label>% Basis:</label>
+    <select value={pctMode} onChange={e=>setPctMode(e.target.value)}>
+      <option value="baker">Baker's % (flour=100%)</option>
+      <option value="mass">Total mass %</option>
+      <option value="custom">Custom base</option>
+    </select>
+    {pctMode==='custom'&&(
+      <>
+        <select value={pctBase} onChange={e=>{setPctBase(e.target.value);setCustomBaseGrams('')}}>
+          <option value="">— select ingredient —</option>
+          {pctBaseOpts.map(n=><option key={n}>{n}</option>)}
+        </select>
+        {pctBase&&(
+          <div style={{display:'flex',alignItems:'center',gap:4}}>
+            <span style={{fontSize:11,color:'var(--muted)'}}>Override grams:</span>
+            <input
+              type="number"
+              value={customBaseGrams}
+              onChange={e=>setCustomBaseGrams(e.target.value)}
+              placeholder={String(toGrams(...(()=>{const p=parseIng((viewR.ingredients||[]).find(i=>i.toLowerCase().includes(pctBase.toLowerCase()))||'');return[p.qty,p.unit]})()))||'g'}
+              style={{width:72,border:'1px solid var(--amber)',borderRadius:5,padding:'3px 6px',fontFamily:'var(--mono)',fontSize:12}}
+            />
+            <span style={{fontSize:11,color:'var(--muted)'}}>g</span>
+            {customBaseGrams&&<button onClick={()=>setCustomBaseGrams('')} style={{fontSize:10,background:'none',border:'none',cursor:'pointer',color:'var(--muted)'}}>reset</button>}
+          </div>
+        )}
+      </>
+    )}
+  </div>
+)}
       <div style={{fontFamily:'var(--mono)',fontSize:10,textTransform:'uppercase',letterSpacing:'.18em',color:'var(--navy)',marginBottom:7}}>
         Ingredients{checked.size>0&&<button style={{marginLeft:10,fontFamily:'var(--mono)',fontSize:9,background:'none',border:'none',cursor:'pointer',color:'var(--muted)',textDecoration:'underline'}} onClick={()=>{setChecked(new Set());setHighlightedSteps(new Set())}}>clear</button>}
       </div>
       {sections.map((sec,si)=>{
-        const pctData=showPct?calcPct(sec.items,pctMode,pctBase):null
+        const pctData=showPct?calcPct(sec.items,pctMode,pctBase,customBaseGrams?parseFloat(customBaseGrams):null):null
         const secG=sec.items.reduce((s,ing)=>{const p=parseIng(ing);return s+toGrams(p.qty,p.unit)},0)
         return(
           <div key={si}>
@@ -1887,6 +1989,8 @@ export default function App(){
   const[selId,setSelId]=useState(null)
   const[mode,setMode]=useState('view')
   const[q,setQ]=useState('')
+  const[sortMode,setSortMode]=useState('recent')
+  const[recentlyOpened,setRecentlyOpened]=useState(()=>{try{return JSON.parse(localStorage.getItem('qdaid_opened')||'[]')}catch{return[]}})
   const[saveErr,setSaveErr]=useState('')
   const[showAppAI,setShowAppAI]=useState(false)
   const[showCompare,setShowCompare]=useState(false)
@@ -1933,10 +2037,21 @@ export default function App(){
     }
   }
   const sel=recipes.find(x=>x.id===selId)||null
-  const filtered=recipes.filter(r=>{
-    if(!q.trim())return true
-    return[r.title,r.category,...(r.ingredients||[])].join(' ').toLowerCase().includes(q.toLowerCase())
-  })
+  const filtered=useMemo(()=>{
+    let list=recipes.filter(r=>{
+      if(!q.trim())return true
+      return[r.title,r.category,...(r.ingredients||[])].join(' ').toLowerCase().includes(q.toLowerCase())
+    })
+    if(sortMode==='az')list=[...list].sort((a,b)=>a.title.localeCompare(b.title))
+    else if(sortMode==='za')list=[...list].sort((a,b)=>b.title.localeCompare(a.title))
+    else if(sortMode==='category')list=[...list].sort((a,b)=>(a.category||'').localeCompare(b.category||''))
+    else if(sortMode==='opened'){
+      const idx=id=>recentlyOpened.indexOf(id)
+      list=[...list].sort((a,b)=>{const ia=idx(a.id),ib=idx(b.id);if(ia===-1&&ib===-1)return 0;if(ia===-1)return 1;if(ib===-1)return-1;return ia-ib})
+    }
+    // default 'recent': already ordered by created_at DESC from DB
+    return list
+  },[recipes,q,sortMode,recentlyOpened])
   const isOpen=mode!=='view'||!!sel
   return(
     <div className="Q" data-open={isOpen?'1':'0'}>
@@ -1959,11 +2074,22 @@ export default function App(){
       <div className="Q-body">
         <aside className="Q-side">
           <div className="Q-search"><input value={q} onChange={e=>setQ(e.target.value)} placeholder="Search recipes…"/></div>
+          <div style={{padding:'6px 12px',borderBottom:'1px solid var(--rule)',display:'flex',alignItems:'center',gap:6}}>
+            <span style={{fontFamily:'var(--mono)',fontSize:9,textTransform:'uppercase',letterSpacing:'.12em',color:'var(--muted)',whiteSpace:'nowrap'}}>Sort:</span>
+            <select value={sortMode} onChange={e=>setSortMode(e.target.value)} style={{flex:1,border:'1px solid var(--rule)',borderRadius:5,padding:'3px 5px',fontSize:11,fontFamily:'var(--mono)',background:'#fff',color:'var(--ink)'}}>
+              <option value="recent">Recent first</option>
+              <option value="opened">Last opened</option>
+              <option value="az">A → Z</option>
+              <option value="za">Z → A</option>
+              <option value="category">Category</option>
+            </select>
+          </div>
+          
           <div className="Q-list">
             {loading&&<div className="Q-msg">Loading…</div>}
             {!loading&&!filtered.length&&<div className="Q-msg">{q?'No matches.':'No recipes yet!'}</div>}
             {filtered.map(r=>(
-              <button key={r.id} className="Q-list-item" aria-selected={r.id===selId&&mode==='view'} onClick={()=>{setSelId(r.id);setMode('view')}}>
+              <button key={r.id} className="Q-list-item" aria-selected={r.id===selId&&mode==='view'} onClick={()=>{setSelId(r.id);setMode('view');setRecentlyOpened(prev=>{const next=[r.id,...prev.filter(x=>x!==r.id)].slice(0,50);localStorage.setItem('qdaid_opened',JSON.stringify(next));return next})}}>
                 {r.thumbnail?<img src={r.thumbnail} className="Q-list-thumb" alt=""/>:<div className="Q-list-thumb-ph">🍞</div>}
                 <div>
                   <h4>{r.title}</h4>

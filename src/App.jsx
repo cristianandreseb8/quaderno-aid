@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import { supabase } from './lib/supabase.js'
 import jsPDF from 'jspdf'
-import * as XLSX from 'xls
+import * as XLSX from 'xlsx'
 
 /* ═══════════════════════════════════════════════════════════════
    QUADERNO AI+D  v1.0
@@ -1199,8 +1199,9 @@ function IDPanel({recipe,onSave}){
     ]
   },[recipe.ingredients,macros])
 
-  
-      {/* ─ Parameters ─ */}
+	  return(
+	    <div className="ID-panel">
+	      {/* ─ Parameters ─ */}
       <div className="ID-section">
         <div className="ID-section-header" onClick={()=>toggleSection('params')}>
           <h3>&#x1F4CA; Macro Parameters</h3>

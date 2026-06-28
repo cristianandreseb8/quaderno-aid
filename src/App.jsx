@@ -592,8 +592,9 @@ function toDb(r){return{
   media_library:r.media_library||'',
   fixed_lang:r.fixed_lang||null,
   copied_from:r.copied_from||null,
+  is_favorite:r.is_favorite||false,
 }}
-function fromDb(r){return{...r,time:r.time_estimate,notes_pad:r.notes_pad||'',thumbnail:r.thumbnail||'',source_photos:r.source_photos||[],id_data:r.id_data||'',media_library:r.media_library||'',fixed_lang:r.fixed_lang||null,copied_from:r.copied_from||null}}
+function fromDb(r){return{...r,time:r.time_estimate,notes_pad:r.notes_pad||'',thumbnail:r.thumbnail||'',source_photos:r.source_photos||[],id_data:r.id_data||'',media_library:r.media_library||'',fixed_lang:r.fixed_lang||null,copied_from:r.copied_from||null,is_favorite:r.is_favorite||false}}
 async function dbLoad(){const{data,error}=await supabase.from('recipes').select('*').order('created_at',{ascending:false});if(error)throw error;return(data||[]).map(fromDb)}
 async function dbInsert(r){const p={...toDb(r)};delete p.id;const{data,error}=await supabase.from('recipes').insert([p]).select().single();if(error)throw error;return fromDb(data)}
 async function dbUpdate(r){const{data,error}=await supabase.from('recipes').update(toDb(r)).eq('id',r.id).select().single();if(error)throw error;return fromDb(data)}
@@ -1703,6 +1704,8 @@ const[customBaseGrams,setCustomBaseGrams]=useState('')
   const[scalePieces,setScalePieces]=useState('')
   const[scaleGpp,setScaleGpp]=useState('')
   const[scaleTotal,setScaleTotal]=useState('')
+  const[scaleIngName,setScaleIngName]=useState('')
+  const[scaleIngGrams,setScaleIngGrams]=useState('')
   const[appliedScale,setAppliedScale]=useState(null)
   const[translating,setTranslating]=useState(false)
   const[translated,setTranslated]=useState(null)
@@ -1730,8 +1733,23 @@ const[customBaseGrams,setCustomBaseGrams]=useState('')
   }
   function applyScale(){
     let factor=0,label=''
-    if(scaleMode==='factor'){factor=parseFloat(scaleFactor)||0;if(!factor)return;label=`×${factor}`}
-    else{const cur=getTotalGrams(recipe.ingredients||[]);if(!cur){alert('No gram quantities found. Use "× Multiply" mode.');return};let tg=0;if(scaleMode==='pieces'){const pc=parseFloat(scalePieces)||0,g=parseFloat(scaleGpp)||0;if(!pc||!g)return;tg=pc*g;label=`${pc}×${g}g=${tg.toFixed(0)}g`}else{tg=parseFloat(scaleTotal)||0;if(!tg)return;label=`${tg.toFixed(0)}g`};factor=tg/cur}
+    if(scaleMode==='factor'){factor=parseFloat(scaleFactor)||0;if(!factor)return;label='x'+factor}
+    else if(scaleMode==='ingredient'){
+      if(!scaleIngName||!scaleIngGrams)return
+      const origIng=(recipe.ingredients||[]).find(i=>!(/^##?\s+/.test(i))&&parseIng(i).name.toLowerCase()===scaleIngName.toLowerCase())
+      if(!origIng){alert('Ingredient not found');return}
+      const origG=toGrams(parseIng(origIng).qty,parseIng(origIng).unit)
+      if(!origG){alert('No calculable grams for this ingredient');return}
+      factor=parseFloat(scaleIngGrams)/origG;if(!factor)return
+      label=scaleIngName+': '+scaleIngGrams+'g'
+    }else{
+      const cur=getTotalGrams(recipe.ingredients||[])
+      if(!cur){alert('No gram quantities. Use Multiply mode.');return}
+      let tg=0
+      if(scaleMode==='pieces'){const pc=parseFloat(scalePieces)||0,g=parseFloat(scaleGpp)||0;if(!pc||!g)return;tg=pc*g;label=pc+'x'+g+'g='+tg.toFixed(0)+'g'}
+      else{tg=parseFloat(scaleTotal)||0;if(!tg)return;label=tg.toFixed(0)+'g'}
+      factor=tg/cur
+    }
     setAppliedScale({factor,label});setShowScale(false);setChecked(new Set());setHighlightedSteps(new Set())
   }
   async function handleTranslate(){
@@ -1800,13 +1818,35 @@ const[customBaseGrams,setCustomBaseGrams]=useState('')
         <div className="Q-scale-panel">
           <h4>Scale recipe</h4>
           <div style={{display:'flex',flexWrap:'wrap',gap:8,marginBottom:10}}>
-            {[['factor','× Multiply'],['pieces','Pieces × g/piece'],['total','Total weight']].map(([k,l])=>(
+            {[['factor','× Multiply'],['pieces','Pieces × g/piece'],['total','Total weight'],['ingredient','By ingredient']].map(([k,l])=>(
               <label key={k} style={{display:'flex',alignItems:'center',gap:4,fontSize:12,cursor:'pointer'}}><input type="radio" checked={scaleMode===k} onChange={()=>setScaleMode(k)}/>{l}</label>
             ))}
           </div>
           {scaleMode==='factor'&&<div className="Q-scale-row"><label>Factor</label><input type="number" value={scaleFactor} onChange={e=>setScaleFactor(e.target.value)} placeholder="2" min=".01" step=".1"/><span style={{fontSize:11,color:'var(--muted)'}}>× all quantities</span></div>}
           {scaleMode==='pieces'&&<div className="Q-scale-row"><label>Piezas</label><input type="number" value={scalePieces} onChange={e=>setScalePieces(e.target.value)} placeholder="100"/><span style={{fontSize:11,color:'var(--muted)'}}>×</span><input type="number" value={scaleGpp} onChange={e=>setScaleGpp(e.target.value)} placeholder="50"/><label>g/pieza</label>{scalePieces&&scaleGpp&&<span style={{fontFamily:'var(--mono)',fontSize:12,color:'var(--navy)',fontWeight:700}}>= {(parseFloat(scalePieces)*parseFloat(scaleGpp)).toFixed(0)} g total</span>}</div>}
           {scaleMode==='total'&&<div className="Q-scale-row"><label>Total</label><input type="number" value={scaleTotal} onChange={e=>setScaleTotal(e.target.value)} placeholder="2000"/><span style={{fontSize:11,color:'var(--muted)'}}>g · current: {getTotalGrams(recipe.ingredients||[]).toFixed(0)}g</span></div>}
+          {scaleMode==='ingredient'&&(
+            <div style={{display:'flex',flexDirection:'column',gap:8}}>
+              <div className="Q-scale-row">
+                <label>Base ingredient</label>
+                <select value={scaleIngName} onChange={e=>{setScaleIngName(e.target.value);setScaleIngGrams('')}} style={{flex:1,border:'1px solid var(--rule)',borderRadius:5,padding:'5px 8px',fontSize:12,fontFamily:'var(--mono)',background:'#fff'}}>
+                  <option value="">choose ingredient</option>
+                  {(recipe.ingredients||[]).filter(i=>!/^##?\s+/.test(i)).map((ing,i)=>{const p=parseIng(ing);const g=toGrams(p.qty,p.unit);return p.name?<option key={i} value={p.name}>{p.name} ({g>0?g+'g':p.qty||'?'})</option>:null})}
+                </select>
+              </div>
+              {scaleIngName&&(()=>{
+                const origIng=(recipe.ingredients||[]).find(i=>!(/^##?\s+/.test(i))&&parseIng(i).name.toLowerCase()===scaleIngName.toLowerCase())
+                const origG=origIng?toGrams(parseIng(origIng).qty,parseIng(origIng).unit):0
+                return(<div className="Q-scale-row">
+                  <label>I have</label>
+                  <input type="number" value={scaleIngGrams} onChange={e=>setScaleIngGrams(e.target.value)} placeholder={String(origG)||'g'} style={{width:90}}/>
+                  <span style={{fontSize:11,color:'var(--muted)'}}>g of {scaleIngName}</span>
+                  {origG>0&&scaleIngGrams&&<span style={{fontFamily:'var(--mono)',fontSize:12,color:'var(--navy)',fontWeight:700}}>factor: x{(parseFloat(scaleIngGrams)/origG).toFixed(3)}</span>}
+                </div>)
+              })()}
+              <div style={{fontSize:11,color:'var(--muted)'}}>All ingredients scale proportionally.</div>
+            </div>
+          )}
           <div style={{display:'flex',gap:7}}><button className="btn amber xs" onClick={applyScale}>Apply</button><button className="btn ghost xs" onClick={()=>setShowScale(false)}>Cancel</button></div>
         </div>
       )}
@@ -1996,6 +2036,7 @@ export default function App(){
   const[showAppAI,setShowAppAI]=useState(false)
   const[showCompare,setShowCompare]=useState(false)
   const[showLibrary,setShowLibrary]=React.useState(false)
+  const[categorizingAI,setCategorizingAI]=useState(false)
   useEffect(()=>{dbLoad().then(data=>{setRecipes(data);if(data[0])setSelId(data[0].id)}).catch(e=>setSaveErr('Load failed: '+e.message)).finally(()=>setLoading(false))},[])
   async function saveRecipe(rec){
     try{
@@ -2037,6 +2078,19 @@ export default function App(){
       case'search':setQ(action.query||'');setShowAppAI(false);break
     }
   }
+  async function handleAutoCategories(){
+    const uncategorized=recipes.filter(r=>!r.category)
+    if(!uncategorized.length){alert('All recipes already have categories.');return}
+    if(!window.confirm('Auto-categorize '+uncategorized.length+' recipes without categories?'))return
+    setCategorizingAI(true)
+    try{
+      const{data,error}=await supabase.functions.invoke('extract-recipe',{body:{type:'auto_categorize',recipes:uncategorized.map(r=>({id:r.id,title:r.title,category:'',ingredients:(r.ingredients||[]).slice(0,8)}))}})
+      if(error)throw new Error(error.message)
+      for(const u of(data?.updates||[])){const rec=recipes.find(r=>r.id===u.id);if(rec){const saved=await dbUpdate({...rec,category:u.category});setRecipes(p=>p.map(r=>r.id===saved.id?saved:r))}}
+      alert('Categorized '+(data?.updates?.length||0)+' recipes.')
+    }catch(e){setSaveErr('Auto-categorize failed: '+e.message)}
+    finally{setCategorizingAI(false)}
+  }
   const sel=recipes.find(x=>x.id===selId)||null
   const filtered=useMemo(()=>{
     let list=recipes.filter(r=>{
@@ -2046,6 +2100,7 @@ export default function App(){
     if(sortMode==='az')list=[...list].sort((a,b)=>a.title.localeCompare(b.title))
     else if(sortMode==='za')list=[...list].sort((a,b)=>b.title.localeCompare(a.title))
     else if(sortMode==='category')list=[...list].sort((a,b)=>(a.category||'').localeCompare(b.category||''))
+    else if(sortMode==='favorites')list=[...list].sort((a,b)=>(b.is_favorite?1:0)-(a.is_favorite?1:0))
     else if(sortMode==='opened'){
       const idx=id=>recentlyOpened.indexOf(id)
       list=[...list].sort((a,b)=>{const ia=idx(a.id),ib=idx(b.id);if(ia===-1&&ib===-1)return 0;if(ia===-1)return 1;if(ib===-1)return-1;return ia-ib})
@@ -2083,7 +2138,13 @@ export default function App(){
               <option value="az">A → Z</option>
               <option value="za">Z → A</option>
               <option value="category">Category</option>
+              <option value="favorites">Favorites</option>
             </select>
+          </div>
+          <div style={{padding:'4px 12px 5px',borderBottom:'1px solid var(--rule)'}}>
+            <button onClick={handleAutoCategories} disabled={categorizingAI} className="btn ghost xs" style={{width:'100%',fontSize:10}}>
+              {categorizingAI?'Categorizing...':'AI auto-categorize'}
+            </button>
           </div>
           
           <div className="Q-list">
@@ -2092,6 +2153,7 @@ export default function App(){
             {filtered.map(r=>(
               <button key={r.id} className="Q-list-item" aria-selected={r.id===selId&&mode==='view'} onClick={()=>{setSelId(r.id);setMode('view');setRecentlyOpened(prev=>{const next=[r.id,...prev.filter(x=>x!==r.id)].slice(0,50);localStorage.setItem('qdaid_opened',JSON.stringify(next));return next})}}>
                 {r.thumbnail?<img src={r.thumbnail} className="Q-list-thumb" alt=""/>:<div className="Q-list-thumb-ph">🍞</div>}
+                <button onClick={e=>{e.stopPropagation();updateRecipe({...r,is_favorite:!r.is_favorite})}} style={{background:'none',border:'none',cursor:'pointer',fontSize:14,padding:'0 2px',flexShrink:0,lineHeight:1}}>{r.is_favorite?'⭐':'☆'}</button>
                 <div>
                   <h4>{r.title}</h4>
                   <span>

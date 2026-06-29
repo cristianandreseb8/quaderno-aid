@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import { supabase } from './lib/supabase.js'
 import jsPDF from 'jspdf'
 import * as XLSX from 'xlsx'
-
+ 
 /* ═══════════════════════════════════════════════════════════════
    QUADERNO AI+D  v1.0
    Base: Quaderno AI v2 (all features preserved)
@@ -2194,3 +2194,4 @@ export default function App(){
     </div>
   )
 }
+

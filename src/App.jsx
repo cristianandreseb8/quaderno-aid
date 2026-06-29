@@ -11,7 +11,7 @@ import * as XLSX from 'xlsx'
    · Copy recipe → fixed language version
    · Módulo I+D (pestaña separada por receta):
        - Ficha de parámetros (grasas, agua, azúcar, sal, hidratación…)
-       - Fichas de percepción sensorial + sistema de puntaje
+       - Fichas de percepción sensorial  sistema de puntaje
        - Timeline de versiones (eolución hacia resultado final)
        - Comparativa entre recetas
        - Tabla nutricional básica
@@ -984,16 +984,16 @@ function IngredientLibraryModal({onClose}){
   function removeCustomParam(key){const p={...editItem.params};delete p[key];setEditItem(prev=>({...prev,params:p}))}
   return(
     <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.7)',zIndex:1000,display:'flex',alignItems:'center',justifyContent:'center'}} onClick={e=>{if(e.target===e.currentTarget)onClose()}}>
-      <div style={{background:'var(--bg)',borderRadius:12,width:'min(900px,96vw)',maxHeight:'90vh',overflow:'hidden',display:'flex',flexDirection:'column',border:'1px solid var(--border)'}}>
-        <div style={{padding:'16px 20px',borderBottom:'1px solid var(--border)',display:'flex',alignItems:'center',gap:12}}>
+      <div style={{background:'var(--paper)',borderRadius:12,width:'min(900px,96vw)',maxHeight:'90vh',overflow:'hidden',display:'flex',flexDirection:'column',border:'1px solid var(--rule)'}}>
+        <div style={{padding:'16px 20px',borderBottom:'1px solid var(--rule)',display:'flex',alignItems:'center',gap:12}}>
           <span style={{fontSize:20}}>📦</span>
-          <h2 style={{margin:0,fontSize:18,fontWeight:700,color:'var(--text)'}}>Ingredient Library</h2>
+          <h2 style={{margin:0,fontSize:18,fontWeight:700,color:'var(--ink)'}}>Ingredient Library</h2>
           <span style={{marginLeft:'auto',fontSize:12,color:'var(--muted)'}}>AI-powered · {items.length} ingredients</span>
           <button onClick={onClose} style={{background:'none',border:'none',fontSize:20,cursor:'pointer',color:'var(--muted)',lineHeight:1}}>&#x2715;</button>
         </div>
-        <div style={{padding:'12px 20px',borderBottom:'1px solid var(--border)',display:'flex',gap:8,flexWrap:'wrap'}}>
-          <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search ingredients..." style={{flex:1,minWidth:160,padding:'6px 10px',borderRadius:6,border:'1px solid var(--border)',background:'var(--input-bg,var(--bg))',color:'var(--text)',fontSize:13}}/>
-          <select value={typeFilter} onChange={e=>setTypeFilter(e.target.value)} style={{padding:'6px 8px',borderRadius:6,border:'1px solid var(--border)',background:'var(--input-bg,var(--bg))',color:'var(--text)',fontSize:13}}>
+        <div style={{padding:'12px 20px',borderBottom:'1px solid var(--rule)',display:'flex',gap:8,flexWrap:'wrap'}}>
+          <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search ingredients..." style={{flex:1,minWidth:160,padding:'6px 10px',borderRadius:6,border:'1px solid var(--rule)',background:'#fff',color:'var(--ink)',fontSize:13}}/>
+          <select value={typeFilter} onChange={e=>setTypeFilter(e.target.value)} style={{padding:'6px 8px',borderRadius:6,border:'1px solid var(--rule)',background:'#fff',color:'var(--ink)',fontSize:13}}>
             <option value="">All types</option>
             {TYPES.map(t=><option key={t} value={t}>{t}</option>)}
           </select>
@@ -1002,28 +1002,28 @@ function IngredientLibraryModal({onClose}){
           {loading&&<div style={{color:'var(--muted)',textAlign:'center',padding:32}}>Loading...</div>}
           {!loading&&filtered.length===0&&<div style={{color:'var(--muted)',textAlign:'center',padding:32}}>No ingredients found.</div>}
           {filtered.map(item=>(
-            <div key={item.id} style={{border:'1px solid var(--border)',borderRadius:8,marginBottom:10,overflow:'hidden'}}>
+            <div key={item.id} style={{border:'1px solid var(--rule)',borderRadius:8,marginBottom:10,overflow:'hidden'}}>
               {editId===item.id?(
-                <div style={{padding:14,background:'var(--hover,#f8f8f8)'}}>
+                <div style={{padding:14,background:'#f5f0e8'}}>
                   <div style={{display:'grid',gridTemplateColumns:'1fr 1fr auto',gap:8,marginBottom:10}}>
                     <div>
                       <label style={{fontSize:11,color:'var(--muted)',display:'block',marginBottom:3}}>Name</label>
-                      <input value={editItem.name} onChange={e=>setEditItem(p=>({...p,name:e.target.value}))} style={{width:'100%',padding:'5px 8px',borderRadius:5,border:'1px solid var(--border)',background:'var(--bg)',color:'var(--text)',fontSize:13,boxSizing:'border-box'}}/>
+                      <input value={editItem.name} onChange={e=>setEditItem(p=>({...p,name:e.target.value}))} style={{width:'100%',padding:'5px 8px',borderRadius:5,border:'1px solid var(--rule)',background:'var(--paper)',color:'var(--ink)',fontSize:13,boxSizing:'border-box'}}/>
                     </div>
                     <div>
                       <label style={{fontSize:11,color:'var(--muted)',display:'block',marginBottom:3}}>Type</label>
-                      <select value={editItem.ingredient_type} onChange={e=>setEditItem(p=>({...p,ingredient_type:e.target.value}))} style={{width:'100%',padding:'5px 8px',borderRadius:5,border:'1px solid var(--border)',background:'var(--bg)',color:'var(--text)',fontSize:13}}>
+                      <select value={editItem.ingredient_type} onChange={e=>setEditItem(p=>({...p,ingredient_type:e.target.value}))} style={{width:'100%',padding:'5px 8px',borderRadius:5,border:'1px solid var(--rule)',background:'var(--paper)',color:'var(--ink)',fontSize:13}}>
                         {TYPES.map(t=><option key={t} value={t}>{t}</option>)}
                       </select>
                     </div>
                     <div style={{display:'flex',alignItems:'flex-end',gap:6}}>
-                      <button onClick={saveEdit} style={{padding:'5px 12px',borderRadius:5,border:'none',background:'var(--accent,#4f8ef7)',color:'#fff',cursor:'pointer',fontSize:12,fontWeight:600}}>Save</button>
-                      <button onClick={cancelEdit} style={{padding:'5px 8px',borderRadius:5,border:'1px solid var(--border)',background:'none',color:'var(--text)',cursor:'pointer',fontSize:12}}>Cancel</button>
+                      <button onClick={saveEdit} style={{padding:'5px 12px',borderRadius:5,border:'none',background:'var(--id)',color:'#fff',cursor:'pointer',fontSize:12,fontWeight:600}}>Save</button>
+                      <button onClick={cancelEdit} style={{padding:'5px 8px',borderRadius:5,border:'1px solid var(--rule)',background:'none',color:'var(--ink)',cursor:'pointer',fontSize:12}}>Cancel</button>
                     </div>
                   </div>
                   <div style={{marginBottom:8}}>
                     <label style={{fontSize:11,color:'var(--muted)',display:'block',marginBottom:3}}>Aliases (comma-separated)</label>
-                    <input value={(editItem.aliases||[]).join(', ')} onChange={e=>setEditItem(p=>({...p,aliases:e.target.value.split(',').map(a=>a.trim()).filter(Boolean)}))} style={{width:'100%',padding:'5px 8px',borderRadius:5,border:'1px solid var(--border)',background:'var(--bg)',color:'var(--text)',fontSize:12,boxSizing:'border-box',marginBottom:10}}/>
+                    <input value={(editItem.aliases||[]).join(', ')} onChange={e=>setEditItem(p=>({...p,aliases:e.target.value.split(',').map(a=>a.trim()).filter(Boolean)}))} style={{width:'100%',padding:'5px 8px',borderRadius:5,border:'1px solid var(--rule)',background:'var(--paper)',color:'var(--ink)',fontSize:12,boxSizing:'border-box',marginBottom:10}}/>
                   </div>
                   <div style={{marginBottom:6}}>
                     <label style={{fontSize:11,color:'var(--muted)',fontWeight:600}}>Parameters</label>
@@ -1032,21 +1032,21 @@ function IngredientLibraryModal({onClose}){
                     {STD_PARAMS.map(key=>(
                       <div key={key}>
                         <label style={{fontSize:10,color:'var(--muted)',display:'block'}}>{STD_LABELS[key]}</label>
-                        <input type="number" step="0.1" value={editItem.params[key]!=null?editItem.params[key]:''} onChange={e=>setEditItem(p=>({...p,params:{...p.params,[key]:parseFloat(e.target.value)||0}}))} style={{width:'100%',padding:'4px 6px',borderRadius:4,border:'1px solid var(--border)',background:'var(--bg)',color:'var(--text)',fontSize:12,boxSizing:'border-box'}}/>
+                        <input type="number" step="0.1" value={editItem.params[key]!=null?editItem.params[key]:''} onChange={e=>setEditItem(p=>({...p,params:{...p.params,[key]:parseFloat(e.target.value)||0}}))} style={{width:'100%',padding:'4px 6px',borderRadius:4,border:'1px solid var(--rule)',background:'var(--paper)',color:'var(--ink)',fontSize:12,boxSizing:'border-box'}}/>
                       </div>
                     ))}
                     {Object.keys(editItem.params).filter(k=>!STD_PARAMS.includes(k)).map(key=>(
                       <div key={key}>
                         <label style={{fontSize:10,color:'#7c3aed',display:'block'}}>{key.replace(/_/g,' ')}</label>
                         <div style={{display:'flex',gap:3}}>
-                          <input type="number" step="0.01" value={editItem.params[key]!=null?editItem.params[key]:''} onChange={e=>setEditItem(p=>({...p,params:{...p.params,[key]:parseFloat(e.target.value)||0}}))} style={{flex:1,padding:'4px 6px',borderRadius:4,border:'1px solid #7c3aed',background:'var(--bg)',color:'var(--text)',fontSize:12}}/>
+                          <input type="number" step="0.01" value={editItem.params[key]!=null?editItem.params[key]:''} onChange={e=>setEditItem(p=>({...p,params:{...p.params,[key]:parseFloat(e.target.value)||0}}))} style={{flex:1,padding:'4px 6px',borderRadius:4,border:'1px solid #7c3aed',background:'var(--paper)',color:'var(--ink)',fontSize:12}}/>
                           <button onClick={()=>removeCustomParam(key)} style={{padding:'0 5px',borderRadius:4,border:'none',background:'none',color:'var(--muted)',cursor:'pointer',fontSize:13}}>&#x2715;</button>
                         </div>
                       </div>
                     ))}
                   </div>
                   <div style={{display:'flex',gap:6,alignItems:'center'}}>
-                    <input value={newParamKey} onChange={e=>setNewParamKey(e.target.value)} onKeyDown={e=>{if(e.key==='Enter'){e.preventDefault();addCustomParam()}}} placeholder="New param name..." style={{flex:1,padding:'4px 8px',borderRadius:5,border:'1px dashed var(--muted)',background:'var(--bg)',color:'var(--text)',fontSize:12}}/>
+                    <input value={newParamKey} onChange={e=>setNewParamKey(e.target.value)} onKeyDown={e=>{if(e.key==='Enter'){e.preventDefault();addCustomParam()}}} placeholder="New param name..." style={{flex:1,padding:'4px 8px',borderRadius:5,border:'1px dashed var(--muted)',background:'var(--paper)',color:'var(--ink)',fontSize:12}}/>
                     <button onClick={addCustomParam} style={{padding:'4px 10px',borderRadius:5,border:'1px dashed var(--muted)',background:'none',color:'var(--muted)',cursor:'pointer',fontSize:12}}>+ Add</button>
                   </div>
                   {editItem.ai_notes&&<div style={{marginTop:8,fontSize:11,color:'var(--muted)',fontStyle:'italic'}}>{editItem.ai_notes}</div>}
@@ -1054,9 +1054,9 @@ function IngredientLibraryModal({onClose}){
               ):(
                 <div style={{padding:'10px 14px',display:'flex',alignItems:'center',gap:10,cursor:'pointer'}} onClick={()=>startEdit(item)}>
                   <div style={{flex:1}}>
-                    <span style={{fontWeight:600,color:'var(--text)',fontSize:14}}>{item.name}</span>
+                    <span style={{fontWeight:600,color:'var(--ink)',fontSize:14}}>{item.name}</span>
                     {item.canonical_name!==item.name&&<span style={{fontSize:11,color:'var(--muted)',marginLeft:8}}>({item.canonical_name})</span>}
-                    <span style={{fontSize:10,background:'var(--hover,#eee)',color:'var(--muted)',borderRadius:4,padding:'1px 6px',marginLeft:8}}>{item.ingredient_type}</span>
+                    <span style={{fontSize:10,background:'#f5f0e8',color:'var(--muted)',borderRadius:4,padding:'1px 6px',marginLeft:8}}>{item.ingredient_type}</span>
                     {(item.aliases||[]).length>0&&<span style={{fontSize:10,color:'var(--muted)',marginLeft:6}}>+{item.aliases.length} aliases</span>}
                   </div>
                   <div style={{display:'flex',gap:12,fontSize:11,color:'var(--muted)'}}>
